@@ -68,8 +68,8 @@ var testRedirectRequests = []struct {
 	wantCode int
 	wantBody string
 }{
-	{"GET", "/lab2", 301, "<a href=\"http://www.github.com/uis-dat520/labs/tree/master/lab2\">Moved Permanently</a>.\n\n"},
-	{"GET", "/lab2/foo", 404, "404 page not found\n"},
+	{"GET", "/github", 301, "<a href=\"http://www.github.com\">Moved Permanently</a>.\n\n"},
+	{"GET", "/github/foo", 404, "404 page not found\n"},
 }
 
 func TestRedirect(t *testing.T) {
@@ -166,7 +166,7 @@ var testServerFullRequests = []struct {
 	{"GET", "/", 200, "Hello World!\n"},
 	{"GET", "/foo", 404, "404 page not found\n"},
 	{"GET", "/counter", 200, "counter: 3\n"},
-	{"GET", "/lab2", 301, "<a href=\"http://www.github.com/uis-dat520/labs/tree/master/lab2\">Moved Permanently</a>.\n\n"},
+	{"GET", "/github", 301, "<a href=\"http://www.github.com\">Moved Permanently</a>.\n\n"},
 	{"GET", "/counter", 200, "counter: 5\n"},
 	{"GET", "/fizzbuzz?value=1", 200, "1\n"},
 	{"GET", "/fizzbuzz?value=3", 200, "fizz\n"},
