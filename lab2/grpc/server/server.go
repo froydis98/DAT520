@@ -1,5 +1,5 @@
 // Leave an empty line above this comment.
-package server
+package main
 
 import (
 	"context"

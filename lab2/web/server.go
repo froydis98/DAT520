@@ -1,4 +1,4 @@
-package web
+package main
 
 import (
 	"flag"
@@ -16,8 +16,7 @@ func main() {
 
 // Server implements the web server specification found at
 // lab2/README.md#web-server
-type Server struct {
-	// TODO(student): Add needed fields
+type Server struct { // TODO(student): Add needed fields
 }
 
 // NewServer returns a new Server with all required internal state initialized.
