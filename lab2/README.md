@@ -210,7 +210,7 @@ Hello World!%
 
 3. A request to the pattern `/github` should return status code `301` to the
    client with body `<a
-   href=\"http://www.github.com/github\">Moved
+   href=\"http://www.github.com\">Moved
    Permanently</a>.\n\n`.
 
 4. The pattern `/fizzbuzz` should implement the Fizz buzz game. It should
