@@ -45,11 +45,9 @@ func NewEvtFailureDetector(id int, nodeIDs []int, sr SuspectRestorer, delta time
 	suspected := make(map[int]bool)
 	alive := make(map[int]bool)
 
-	nodeIDs = append(nodeIDs, id)
-	for _, x := range nodeIDs {
-		alive[x] = true
+	for i := range nodeIDs {
+		alive[i] = true
 	}
-	// TODO(student): perform any initialization necessary
 
 	return &EvtFailureDetector{
 		id:        id,
@@ -88,7 +86,7 @@ func (e *EvtFailureDetector) Start() {
 					hb.Request = !hb.Request
 					e.hbSend <- hb
 				} else {
-					e.alive[hb.From] = true;
+					e.alive[hb.From] = true
 				}
 			case <-e.timeoutSignal.C:
 				e.timeout()
@@ -111,8 +109,7 @@ func (e *EvtFailureDetector) Stop() {
 
 // Internal: timeout runs e's timeout procedure.
 func (e *EvtFailureDetector) timeout() {
-
-	checkIfSuspected := false;
+	checkIfSuspected := false
 	for allNodes := range e.alive {
 		if e.suspected[allNodes] {
 			checkIfSuspected = true
@@ -121,7 +118,6 @@ func (e *EvtFailureDetector) timeout() {
 	if checkIfSuspected {
 		e.delay += e.delta
 	}
-	_ = checkIfSuspected
 
 	for i := range e.nodeIDs {
 		if e.alive[i] && e.suspected[i] {
@@ -134,7 +130,7 @@ func (e *EvtFailureDetector) timeout() {
 		hb := Heartbeat{To: i, From: e.id, Request: true}
 		e.hbSend <- hb
 	}
-	
+
 	e.alive = make(map[int]bool)
 	e.Start()
 }
