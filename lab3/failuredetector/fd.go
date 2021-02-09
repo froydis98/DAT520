@@ -1,6 +1,8 @@
 package failuredetector
 
-import "time"
+import (
+	"time"
+)
 
 // EvtFailureDetector represents a Eventually Perfect Failure Detector as
 // described at page 53 in:
@@ -43,6 +45,10 @@ func NewEvtFailureDetector(id int, nodeIDs []int, sr SuspectRestorer, delta time
 	suspected := make(map[int]bool)
 	alive := make(map[int]bool)
 
+	nodeIDs = append(nodeIDs, id)
+	for _, x := range nodeIDs {
+		alive[x] = true
+	}
 	// TODO(student): perform any initialization necessary
 
 	return &EvtFailureDetector{
@@ -74,8 +80,16 @@ func (e *EvtFailureDetector) Start() {
 		for {
 			e.testingHook() // DO NOT REMOVE THIS LINE. A no-op when not testing.
 			select {
-			case <-e.hbIn:
-				// TODO(student): Handle incoming heartbeat
+			case hb := <-e.hbIn:
+				if hb.Request {
+					temp := hb.From
+					hb.From = hb.To
+					hb.To = temp
+					hb.Request = !hb.Request
+					e.hbSend <- hb
+				} else {
+					e.alive[hb.From] = true;
+				}
 			case <-e.timeoutSignal.C:
 				e.timeout()
 			case <-e.stop:
@@ -97,7 +111,32 @@ func (e *EvtFailureDetector) Stop() {
 
 // Internal: timeout runs e's timeout procedure.
 func (e *EvtFailureDetector) timeout() {
-	// TODO(student): Implement timeout procedure
+
+	checkIfSuspected := false;
+	for allNodes := range e.alive {
+		if e.suspected[allNodes] {
+			checkIfSuspected = true
+		}
+	}
+	if checkIfSuspected {
+		e.delay += e.delta
+	}
+	_ = checkIfSuspected
+
+	for i := range e.nodeIDs {
+		if e.alive[i] && e.suspected[i] {
+			delete(e.suspected, i)
+			e.sr.Restore(i)
+		} else if !e.alive[i] && !e.suspected[i] {
+			e.suspected[i] = true
+			e.sr.Suspect(i)
+		}
+		hb := Heartbeat{To: i, From: e.id, Request: true}
+		e.hbSend <- hb
+	}
+	
+	e.alive = make(map[int]bool)
+	e.Start()
 }
 
 // TODO(student): Add other unexported functions or methods if needed.
