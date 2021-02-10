@@ -1,25 +1,39 @@
 package leaderdetector
 
+import (
+	"sort"
+)
+
 // A MonLeaderDetector represents a Monarchical Eventual Leader Detector as
 // described at page 53 in:
 // Christian Cachin, Rachid Guerraoui, and Luís Rodrigues: "Introduction to
 // Reliable and Secure Distributed Programming" Springer, 2nd edition, 2011.
-type MonLeaderDetector struct { // TODO(student): Add needed fields
+type MonLeaderDetector struct {
+	currentLeader int
+	suspected     map[int]bool // map of node ids  considered suspected
 }
 
 // NewMonLeaderDetector returns a new Monarchical Eventual Leader Detector
 // given a list of node ids.
 func NewMonLeaderDetector(nodeIDs []int) *MonLeaderDetector {
-	// TODO(student): Add needed implementation
 	m := &MonLeaderDetector{}
+	sort.Ints(nodeIDs)
+	if nodeIDs[len(nodeIDs)-1] < 0 {
+		m.currentLeader = UnknownID
+	} else {
+		m.currentLeader = nodeIDs[len(nodeIDs)-1]
+	}
+
 	return m
 }
 
 // Leader returns the current leader. Leader will return UnknownID if all nodes
 // are suspected.
 func (m *MonLeaderDetector) Leader() int {
-	// TODO(student): Implement
-	return UnknownID
+	if m.currentLeader == UnknownID {
+		return UnknownID
+	}
+	return m.currentLeader
 }
 
 // Suspect instructs the leader detector to consider the node with matching
