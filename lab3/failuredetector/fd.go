@@ -134,5 +134,3 @@ func (e *EvtFailureDetector) timeout() {
 	e.alive = make(map[int]bool)
 	e.Start()
 }
-
-// TODO(student): Add other unexported functions or methods if needed.
