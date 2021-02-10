@@ -54,7 +54,6 @@ func (m *MonLeaderDetector) Suspect(id int) {
 func (m *MonLeaderDetector) Restore(id int) {
 	m.suspected[id] = false
 	m.ChangeLeader()
-	// TODO(student): Implement
 }
 
 // Subscribe returns a buffered channel which will be used by the leader
@@ -95,5 +94,3 @@ func (m *MonLeaderDetector) InformChannels(id int) {
 		channel <- id
 	}
 }
-
-// TODO(student): Add other unexported functions or methods if needed.
