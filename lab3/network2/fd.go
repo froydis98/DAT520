@@ -119,6 +119,10 @@ func (e *EvtFailureDetector) timeout() {
 	}
 
 	for _, i := range e.nodeIDs {
+		if e.suspected[i] == false {
+			delete(e.suspected, i)
+			e.sr.Restore(i)
+		}
 		if e.alive[i] && e.suspected[i] {
 			delete(e.suspected, i)
 			e.sr.Restore(i)

@@ -135,7 +135,6 @@ func main() {
 					heartBeat.From = from
 					if nfd.suspected[heartBeat.From] {
 						nld.Restore(heartBeat.From)
-						delete(nfd.suspected, heartBeat.From)
 						nfd.suspected[heartBeat.From] = false
 
 					}
