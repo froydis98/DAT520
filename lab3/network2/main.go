@@ -65,6 +65,9 @@ func main() {
 				fmt.Println(s)
 				udpAddr, _ := net.ResolveUDPAddr("udp", s[0])
 				nodeID, _ := strconv.Atoi(s[1])
+				if intInSlice(nodeID, nodeIDs) {
+					waiting = false
+				}
 				anotherServer := OtherServer{s[0], nodeID}
 				OtherServers = append(OtherServers, anotherServer)
 				nodeIDs = append(nodeIDs, nodeID)
@@ -98,10 +101,10 @@ func main() {
 		if nfd.suspected[nld.Leader()] {
 			nld.ChangeLeader()
 		}
+		fmt.Println("Suspected Nodes are: ", nfd.suspected)
 
 		for _, server := range nfd.nodeIDs {
-			time.Sleep(time.Second)
-			fmt.Println("Suspected Nodes are: ", nfd.suspected)
+			time.Sleep(time.Millisecond * 700)
 
 			tempAddr := ""
 			for _, otherservers := range OtherServers {
@@ -159,4 +162,12 @@ func check(err error) {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
 		os.Exit(1)
 	}
+}
+func intInSlice(a int, list []int) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }

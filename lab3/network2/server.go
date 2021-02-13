@@ -99,7 +99,7 @@ func SendCommand(udpAddr, cmd, txt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	conn.SetReadDeadline(time.Now().Add(time.Second))
+	conn.SetReadDeadline(time.Now().Add(time.Millisecond * 500))
 	n, err := conn.Read(buf[0:])
 
 	if err != nil {
