@@ -43,17 +43,12 @@ func main() {
 	endpoints = append(endpoints, endpoint3)
 
 	server1, _ := NewUDPServer(endpoint3, 5)
-	// De andre serverne må jeg lage i andre filer
-	// server2, _ := NewUDPServer(endpoint2, 2)
-	// server3, _ := NewUDPServer(endpoint3, 3)
 
 	conn := make([]*net.UDPAddr, 0)
 	connstrings := make([]string, 0)
 
 	go server1.ServeUDP()
-	// De andre serverne må jeg lage i andre filer
-	// go server2.ServeUDP()
-	// go server3.ServeUDP()
+
 	waiting := true
 	for waiting {
 		for _, endpoint := range endpoints {
@@ -80,21 +75,15 @@ func main() {
 		}
 	}
 
-	// for _,conns:= range connstrings{
-	// 	res,_ := SendCommand(conns, "Servers", "Here we have a list of all servers")
-	// 	fmt.Println(res)
-	// }
-
 	fmt.Println("outside of for loop", connstrings)
 	fmt.Println("outside of for loop", nodeIDs)
 	nld := NewMonLeaderDetector(nodeIDs)
 	NewSuspecter := nld
-	delta := time.Second * 10
+	delta := time.Second * 5
 	hbSend := make(chan Heartbeat, 16)
 	nfd := NewEvtFailureDetector(server1.id, nodeIDs, NewSuspecter, delta, hbSend)
 	nfd.Start()
 	for {
-
 		fmt.Println("")
 		fmt.Println("Current leader is: ", nld.Leader())
 
@@ -104,7 +93,7 @@ func main() {
 		fmt.Println("Suspected Nodes are: ", nfd.suspected)
 
 		for _, server := range nfd.nodeIDs {
-			time.Sleep(time.Millisecond * 700)
+			time.Sleep(time.Millisecond * 600)
 
 			tempAddr := ""
 			for _, otherservers := range OtherServers {
@@ -139,21 +128,13 @@ func main() {
 					if nfd.suspected[heartBeat.From] {
 						nld.Restore(heartBeat.From)
 						nfd.suspected[heartBeat.From] = false
-
 					}
 					heartBeat.To = to
 					heartBeat.Request = state
 					nfd.DeliverHeartbeat(heartBeat)
-
 				}
-
 			}
 		}
-		//	nfd.DeliverHeartbeat()
-		//  kan sette setdealine for write og read, aka hvis de ikke finner noe går de videre
-		//  se her for mer : https://golang.org/pkg/net/
-		//  bruk ctrl f setdeadline for å finne mer om dette
-		//  her må jeg lahe leaderdetector og failure detector koden
 	}
 }
 
