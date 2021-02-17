@@ -160,7 +160,7 @@ func (p *Proposer) IncrementAllDecidedUpTo() {
 // algorithm. If handling the promise results in proposer p emitting a
 // corresponding accept slice, then output will be true and accs contain the
 // accept messages. If handlePromise returns false as output, then accs will be
-// a nil slice. See the Lab 5 text for a more complete specification.
+// a nil slice.
 func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 	// TODO(student)
 	return []Accept{
