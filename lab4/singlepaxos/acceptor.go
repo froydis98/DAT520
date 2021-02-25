@@ -2,8 +2,13 @@ package singlepaxos
 
 // Acceptor represents an acceptor as defined by the single-decree Paxos
 // algorithm.
-type Acceptor struct { // TODO(student): algorithm implementation
-	// Add needed fields
+type Acceptor struct {
+	ID int
+	Rnd Round
+	Vrnd Round
+	Vval Value
+	P map[Proposer]bool
+	L map[Learner]bool
 }
 
 // NewAcceptor returns a new single-decree Paxos acceptor.
@@ -11,8 +16,14 @@ type Acceptor struct { // TODO(student): algorithm implementation
 //
 // id: The id of the node running this instance of a Paxos acceptor.
 func NewAcceptor(id int) *Acceptor {
-	// TODO(student): algorithm implementation
-	return &Acceptor{}
+	return &Acceptor{
+		ID: id,
+		Rnd: 0,
+		Vrnd: NoRound,
+		Vval: ZeroValue,
+		P: make(map[Proposer]bool),
+		L: make(map[Learner]bool),
+	}
 }
 
 // Internal: handlePrepare processes prepare prp according to the single-decree
@@ -21,8 +32,11 @@ func NewAcceptor(id int) *Acceptor {
 // If handlePrepare returns false as output, then prm will be a zero-valued
 // struct.
 func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
-	// TODO(student): algorithm implementation
-	return Promise{To: -1, From: -1, Vrnd: -2, Vval: "FooBar"}, true
+	if prp.Crnd > a.Rnd {
+		a.Rnd = prp.Crnd
+		return Promise{To: prp.From, From: a.ID, Rnd: a.Rnd, Vrnd: a.Vrnd, Vval: a.Vval}, true
+	}
+	return Promise{}, false
 }
 
 // Internal: handleAccept processes accept acc according to the single-decree
@@ -30,8 +44,13 @@ func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
 // corresponding learn, then output will be true and lrn contain the learn.  If
 // handleAccept returns false as output, then lrn will be a zero-valued struct.
 func (a *Acceptor) handleAccept(acc Accept) (lrn Learn, output bool) {
-	// TODO(student): algorithm implementation
-	return Learn{From: -1, Rnd: -2, Val: "FooBar"}, true
+	if acc.Rnd >= a.Rnd && acc.Rnd != a.Vrnd {
+		a.Rnd = acc.Rnd
+		a.Vrnd = acc.Rnd
+		a.Vval = acc.Val
+		return Learn{From: a.ID, Rnd: a.Rnd, Val: a.Vval}, true
+	}
+	return Learn{}, false
 }
 
 // TODO(student): Add any other unexported methods needed.
