@@ -2,9 +2,12 @@ package singlepaxos
 
 // Learner represents a learner as defined by the single-decree Paxos
 // algorithm.
-type Learner struct { // TODO(student): algorithm implementation
-	// Add needed fields
-	// Tip: you need to keep the decided values by the Paxos nodes somewhere
+type Learner struct { 
+	ID int
+	NrOfNodes int
+	Val Value
+	Rnd Round
+	Previous map[int]Value
 }
 
 // NewLearner returns a new single-decree Paxos learner. It takes the
@@ -14,8 +17,13 @@ type Learner struct { // TODO(student): algorithm implementation
 //
 // nrOfNodes: The total number of Paxos nodes.
 func NewLearner(id int, nrOfNodes int) *Learner {
-	// TODO(student): algorithm implementation
-	return &Learner{}
+	return &Learner{
+		ID: id,
+		NrOfNodes: nrOfNodes,
+		Val: ZeroValue,
+		Rnd: NoRound,
+		Previous: make(map[int]Value),
+	}
 }
 
 // Internal: handleLearn processes learn lrn according to the single-decree
@@ -24,8 +32,17 @@ func NewLearner(id int, nrOfNodes int) *Learner {
 // decided value. If handleLearn returns false as output, then val will have
 // its zero value.
 func (l *Learner) handleLearn(learn Learn) (val Value, output bool) {
-	// TODO(student): algorithm implementation
-	return "FooBar", true
+	if learn.Rnd >= l.Rnd {
+		if (learn.Val != ZeroValue && learn.Val != l.Val) || l.Rnd != learn.Rnd {
+			l.Previous = make(map[int]Value)
+			l.Rnd = learn.Rnd
+			l.Val = learn.Val
+		}
+		l.Previous[learn.From] = learn.Val
+	}
+	if len(l.Previous) > l.NrOfNodes/2 {
+		l.Previous = make(map[int]Value)
+		return l.Val, true
+	}
+	return ZeroValue, false
 }
-
-// TODO(student): Add any other unexported methods needed.
