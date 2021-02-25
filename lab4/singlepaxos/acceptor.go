@@ -7,8 +7,8 @@ type Acceptor struct {
 	Rnd Round
 	Vrnd Round
 	Vval Value
-	P map[Proposer]bool
-	L map[Learner]bool
+	P map[*Proposer]bool
+	L map[*Learner]bool
 }
 
 // NewAcceptor returns a new single-decree Paxos acceptor.
@@ -21,8 +21,8 @@ func NewAcceptor(id int) *Acceptor {
 		Rnd: 0,
 		Vrnd: NoRound,
 		Vval: ZeroValue,
-		P: make(map[Proposer]bool),
-		L: make(map[Learner]bool),
+		P: make(map[*Proposer]bool),
+		L: make(map[*Learner]bool),
 	}
 }
 
@@ -52,5 +52,3 @@ func (a *Acceptor) handleAccept(acc Accept) (lrn Learn, output bool) {
 	}
 	return Learn{}, false
 }
-
-// TODO(student): Add any other unexported methods needed.
