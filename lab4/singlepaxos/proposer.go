@@ -23,7 +23,7 @@ type Proposer struct {
 func NewProposer(id int, nrOfNodes int) *Proposer {
 	return &Proposer{
 		ID: id,
-		crnd: 0,
+		crnd: Round(id),
 		A: make(map[*Acceptor]bool),
 		clientValue: ZeroValue,
 		nrOfNodes: nrOfNodes,
