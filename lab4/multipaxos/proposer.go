@@ -17,9 +17,9 @@ type Proposer struct {
 	adu      SlotID
 	nextSlot SlotID
 
-	promises     []*Promise
+	promises       []*Promise
 	actualPromises []*Promise
-	promiseCount int
+	promiseCount   int
 
 	phaseOneDone           bool
 	phaseOneProgressTicker *time.Ticker
@@ -66,7 +66,7 @@ func NewProposer(id, nrOfNodes, adu int, ld leaderdetector.LeaderDetector, prepa
 		adu:      SlotID(adu),
 		nextSlot: 0,
 
-		promises: make([]*Promise, nrOfNodes),
+		promises:       make([]*Promise, nrOfNodes),
 		actualPromises: make([]*Promise, nrOfNodes),
 
 		phaseOneProgressTicker: time.NewTicker(time.Second),
@@ -193,7 +193,7 @@ func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 	for _, promise := range p.promises {
 		if promise != nil {
 			for _, slotFromPromise := range promise.Slots {
-				if slotFromPromise.ID <= p.adu { 
+				if slotFromPromise.ID <= p.adu {
 					continue
 				}
 				slotHasBeenSeen := false
@@ -217,8 +217,8 @@ func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 		accept := Accept{
 			From: p.id,
 			Slot: slot.ID,
-			Rnd: p.crnd,
-			Val: slot.Vval,
+			Rnd:  p.crnd,
+			Val:  slot.Vval,
 		}
 		accs = append(accs, accept)
 	}
@@ -232,10 +232,10 @@ func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 	lastSlot := accs[len(accs)-1].Slot
 	accsI := 0
 	newAccs := []Accept{}
-	for slot:= firstSlot; slot <= lastSlot; slot++ {
+	for slot := firstSlot; slot <= lastSlot; slot++ {
 		if slot == accs[accsI].Slot {
 			newAccs = append(newAccs, accs[accsI])
-			accsI ++
+			accsI++
 			continue
 		}
 		noopAccept := Accept{

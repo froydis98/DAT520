@@ -3,16 +3,16 @@ package multipaxos
 import "sort"
 
 // Acceptor represents an acceptor as defined by the Multi-Paxos algorithm.
-type Acceptor struct { 
-	id int
-	rnd Round
-	slotID SlotID
-	slots []PromiseSlot
+type Acceptor struct {
+	id         int
+	rnd        Round
+	slotID     SlotID
+	slots      []PromiseSlot
 	promiseOut chan<- Promise
-	prepareIn chan Prepare
-	acceptIn chan Accept
-	learnOut chan<- Learn
-	stop chan bool
+	prepareIn  chan Prepare
+	acceptIn   chan Accept
+	learnOut   chan<- Learn
+	stop       chan bool
 }
 
 // NewAcceptor returns a new Multi-Paxos acceptor.
@@ -25,14 +25,14 @@ type Acceptor struct {
 // learnOut: A send only channel used to send learns to other nodes.
 func NewAcceptor(id int, promiseOut chan<- Promise, learnOut chan<- Learn) *Acceptor {
 	return &Acceptor{
-		id: id,
-		rnd: NoRound,
-		slots: []PromiseSlot{},
+		id:         id,
+		rnd:        NoRound,
+		slots:      []PromiseSlot{},
 		promiseOut: promiseOut,
-		prepareIn: make(chan Prepare),
-		acceptIn: make(chan Accept),
-		learnOut: learnOut,
-		stop: make(chan bool),
+		prepareIn:  make(chan Prepare),
+		acceptIn:   make(chan Accept),
+		learnOut:   learnOut,
+		stop:       make(chan bool),
 	}
 }
 
@@ -101,9 +101,10 @@ func (a *Acceptor) handleAccept(acc Accept) (lrn Learn, output bool) {
 	if acc.Rnd >= a.rnd {
 		a.rnd = acc.Rnd
 		a.slotID = acc.Slot
-		accSlot := PromiseSlot{ID: acc.Slot, Vrnd: a.rnd, Vval: acc.Val}
-		if a.rnd < acc.Rnd {
-			a.slots[acc.Slot] = accSlot
+		for i, slot := range a.slots {
+			if slot.ID == acc.Slot {
+				a.slots = append(a.slots[:i], a.slots[i+1:]...)
+			}
 		}
 		a.slots = append(a.slots, PromiseSlot{ID: acc.Slot, Vrnd: acc.Rnd, Vval: acc.Val})
 		sort.SliceStable(a.slots, func(i, j int) bool {
