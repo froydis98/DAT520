@@ -73,7 +73,7 @@ func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) 
 	}
 	if len(l.Previous) > l.NrOfNodes/2 {
 		l.Previous = make(map[int]Value)
-		return l.Val, 1, true
+		return l.Val, learn.Slot, true
 	}
 	return Value{ClientID: "-1", ClientSeq: -1, Command: "-1"}, -1, false
 }
