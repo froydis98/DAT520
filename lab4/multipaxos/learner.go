@@ -1,16 +1,16 @@
 package multipaxos
 
 // Learner represents a learner as defined by the Multi-Paxos algorithm.
-type Learner struct { // TODO(student): algorithm and distributed implementation
-	ID         int
-	NrOfNodes  int
-	decidedOut chan<- DecidedValue
-	learnIn    chan Learn
-	stop       chan struct{}
-	Val        Value
-	Rnd        Round
-	Previous   map[int]Value
-	FromSlots  map[SlotID]int
+type Learner struct {
+	ID           int
+	NrOfNodes    int
+	quorum       int
+	decidedOut   chan<- DecidedValue
+	learnIn      chan Learn
+	stop         chan struct{}
+	Val          Value
+	Rnd          Round
+	learnedSlots map[SlotID][]Learn
 }
 
 // NewLearner returns a new Multi-Paxos learner. It takes the
@@ -24,12 +24,13 @@ type Learner struct { // TODO(student): algorithm and distributed implementation
 // i.e. decided by the Paxos nodes.
 func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner {
 	return &Learner{
-		ID:         id,
-		NrOfNodes:  nrOfNodes,
-		decidedOut: decidedOut,
-		Val:        Value{ClientID: "0000", ClientSeq: -10, Command: "none"},
-		Rnd:        Round(0),
-		FromSlots:  make(map[SlotID]int),
+		ID:           id,
+		NrOfNodes:    nrOfNodes,
+		quorum:       (nrOfNodes / 2) + 1,
+		decidedOut:   decidedOut,
+		Val:          Value{ClientID: "0000", ClientSeq: -10, Command: "none"},
+		Rnd:          Round(0),
+		learnedSlots: make(map[SlotID][]Learn),
 	}
 }
 
@@ -38,10 +39,12 @@ func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner 
 func (l *Learner) Start() {
 	go func() {
 		for {
-			// TODO(student): distributed implementation
 			select {
 			case LearnMessage := <-l.learnIn:
-				l.handleLearn(LearnMessage)
+				val, slot, output := l.handleLearn(LearnMessage)
+				if output {
+					l.decidedOut <- DecidedValue{SlotID: slot, Value: val}
+				}
 			case <-l.stop:
 				return
 			}
@@ -65,18 +68,25 @@ func (l *Learner) DeliverLearn(lrn Learn) {
 // slot that was decided and val contain the decided value. If handleLearn
 // returns false as output, then val and sid will have their zero value.
 func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) {
-	if learn.Rnd >= l.Rnd {
-		if (learn.Val != l.Val) || l.Rnd != learn.Rnd {
-			l.Previous = make(map[int]Value)
-			l.Rnd = learn.Rnd
-			l.Val = learn.Val
+	if learn.Rnd < l.Rnd {
+		return val, sid, false
+	} else if learn.Rnd == l.Rnd {
+		if l.learnedSlots[learn.Slot] == nil {
+			l.learnedSlots[learn.Slot] = []Learn{}
 		}
-		l.FromSlots[learn.Slot] = l.FromSlots[learn.Slot] + 1
-		l.Previous[learn.From] = learn.Val
+		for _, learned := range l.learnedSlots[learn.Slot] {
+			if learned.From == learn.From && learned.Rnd == learn.Rnd && learned.Slot == learn.Slot {
+				return val, sid, false
+			}
+		}
+		l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
+		if len(l.learnedSlots[learn.Slot]) >= l.quorum {
+			return learn.Val, learn.Slot, true
+		}
+	} else {
+		l.Rnd = learn.Rnd
+		l.learnedSlots = map[SlotID][]Learn{}
+		l.learnedSlots[learn.Slot] = []Learn{learn}
 	}
-	if l.FromSlots[learn.Slot] > (l.NrOfNodes/2) && len(l.Previous) > (l.NrOfNodes/2) {
-		l.Previous = make(map[int]Value)
-		return l.Val, learn.Slot, true
-	}
-	return Value{ClientID: "-1", ClientSeq: -1, Command: "-1"}, -1, false
+	return val, sid, false
 }
