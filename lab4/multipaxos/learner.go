@@ -2,7 +2,11 @@ package multipaxos
 
 // Learner represents a learner as defined by the Multi-Paxos algorithm.
 type Learner struct { // TODO(student): algorithm and distributed implementation
-	// Add needed fields
+	ID         int
+	NrOfNodes  int
+	decidedOut chan<- DecidedValue
+	learnIn    chan Learn
+	stop       chan struct{}
 }
 
 // NewLearner returns a new Multi-Paxos learner. It takes the
@@ -15,8 +19,11 @@ type Learner struct { // TODO(student): algorithm and distributed implementation
 // decidedOut: A send only channel used to send values that has been learned,
 // i.e. decided by the Paxos nodes.
 func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner {
-	// TODO(student): algorithm and distributed implementation
-	return &Learner{}
+	return &Learner{
+		ID:         id,
+		NrOfNodes:  nrOfNodes,
+		decidedOut: decidedOut,
+	}
 }
 
 // Start starts l's main run loop as a separate goroutine. The main run loop
@@ -25,13 +32,19 @@ func (l *Learner) Start() {
 	go func() {
 		for {
 			// TODO(student): distributed implementation
+			select {
+			case LearnMessage := <-l.learnIn:
+				l.handleLearn(LearnMessage)
+			case <-l.stop:
+				return
+			}
 		}
 	}()
 }
 
 // Stop stops l's main run loop.
 func (l *Learner) Stop() {
-	// TODO(student): distributed implementation
+	l.stop <- struct{}{}
 }
 
 // DeliverLearn delivers learn lrn to learner l.
