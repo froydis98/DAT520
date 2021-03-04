@@ -3,6 +3,7 @@ package multipaxos
 import (
 	"container/list"
 	"dat520/lab3/leaderdetector"
+	"sort"
 	"time"
 )
 
@@ -194,7 +195,30 @@ func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 	if len(accs) <= 0 {
 		return []Accept{}, true
 	}
-	return accs, true
+	sort.SliceStable(accs, func(i int, j int) bool {
+		return accs[i].Slot < accs[j].Slot
+	})
+	firstSlot := accs[0].Slot
+	lastSlot := accs[len(accs)-1].Slot
+	accsI := 0
+	newAccs := []Accept{}
+	for slot:= firstSlot; slot <= lastSlot; slot++ {
+		if slot == accs[accsI].Slot {
+			newAccs = append(newAccs, accs[accsI])
+			accsI ++
+
+		}
+		noopAccept := Accept{
+			From: p.id,
+			Slot: slot,
+			Rnd:  p.crnd,
+			Val: Value{
+				Noop: true,
+			},
+		}
+		newAccs = append(newAccs, noopAccept)
+	}
+	return newAccs, true
 }
 
 // Internal: increaseCrnd increases proposer p's crnd field by the total number
