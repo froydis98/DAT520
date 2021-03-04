@@ -1,8 +1,13 @@
 package multipaxos
 
+import "sort"
+
 // Acceptor represents an acceptor as defined by the Multi-Paxos algorithm.
 type Acceptor struct { 
 	id int
+	rnd Round
+	slotID SlotID
+	slots map[SlotID]PromiseSlot
 	promiseOut chan<- Promise
 	prepareIn chan Prepare
 	acceptIn chan Accept
@@ -73,7 +78,24 @@ func (a *Acceptor) DeliverAccept(acc Accept) {
 // If handlePrepare returns false as output, then prm will be a zero-valued
 // struct.
 func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
-	// TODO(student): algorithm implementation
+	if prp.Crnd > a.rnd {
+		a.rnd = prp.Crnd
+		a.slotID = prp.Slot
+		accSlots := []PromiseSlot{}
+		for id, slot := range a.slots {
+			if id >= prp.Slot {
+				accSlots = append(accSlots, slot)
+			}
+		}
+		sort.SliceStable(accSlots, func(i, j int) bool {
+			return accSlots[i].ID < accSlots[j].ID
+		})
+		promise := Promise{To: prp.From, From: a.id, Rnd: a.rnd}
+		if len(accSlots) > 0 {
+			promise.Slots = accSlots
+		}
+		return promise, true
+	}
 	return Promise{}, false
 }
 
