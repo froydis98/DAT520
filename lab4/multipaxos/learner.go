@@ -7,6 +7,9 @@ type Learner struct { // TODO(student): algorithm and distributed implementation
 	decidedOut chan<- DecidedValue
 	learnIn    chan Learn
 	stop       chan struct{}
+	Val        Value
+	Rnd        Round
+	Previous   map[int]Value
 }
 
 // NewLearner returns a new Multi-Paxos learner. It takes the
@@ -23,6 +26,8 @@ func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner 
 		ID:         id,
 		NrOfNodes:  nrOfNodes,
 		decidedOut: decidedOut,
+		Val:        Value{ClientID: "0000", ClientSeq: -10, Command: "none"},
+		Rnd:        Round(0),
 	}
 }
 
@@ -58,8 +63,17 @@ func (l *Learner) DeliverLearn(lrn Learn) {
 // slot that was decided and val contain the decided value. If handleLearn
 // returns false as output, then val and sid will have their zero value.
 func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) {
-	// TODO(student): algorithm implementation
-	return Value{ClientID: "-1", ClientSeq: -1, Command: "-1"}, -1, true
+	if learn.Rnd >= l.Rnd {
+		if (learn.Val != l.Val) || l.Rnd != learn.Rnd {
+			l.Previous = make(map[int]Value)
+			l.Rnd = learn.Rnd
+			l.Val = learn.Val
+		}
+		l.Previous[learn.From] = learn.Val
+	}
+	if len(l.Previous) > l.NrOfNodes/2 {
+		l.Previous = make(map[int]Value)
+		return l.Val, 1, true
+	}
+	return Value{ClientID: "-1", ClientSeq: -1, Command: "-1"}, -1, false
 }
-
-// TODO(student): Add any other unexported methods needed.
