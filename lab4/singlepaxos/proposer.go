@@ -3,7 +3,7 @@ package singlepaxos
 // Proposer represents a proposer as defined by the single-decree Paxos
 // algorithm.
 type Proposer struct {
-	ID int
+	id int
 	crnd        Round
 	clientValue Value
 	A map[*Acceptor]bool
@@ -22,7 +22,7 @@ type Proposer struct {
 // its id.
 func NewProposer(id int, nrOfNodes int) *Proposer {
 	return &Proposer{
-		ID: id,
+		id: id,
 		crnd: Round(id),
 		A: make(map[*Acceptor]bool),
 		clientValue: ZeroValue,
@@ -53,7 +53,7 @@ func (p *Proposer) handlePromise(prm Promise) (acc Accept, output bool) {
 			if (p.crnd == NoRound) || (p.crnd == 0) {
 				return Accept{}, false
 			}
-			return Accept{From: p.ID, Rnd: p.crnd, Val: p.clientValue}, true
+			return Accept{From: p.id, Rnd: p.crnd, Val: p.clientValue}, true
 		}
 	}
 	return Accept{}, false

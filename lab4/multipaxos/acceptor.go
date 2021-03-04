@@ -66,12 +66,12 @@ func (a *Acceptor) Stop() {
 
 // DeliverPrepare delivers prepare prp to acceptor a.
 func (a *Acceptor) DeliverPrepare(prp Prepare) {
-	// TODO(student): distributed implementation
+	a.prepareIn <- prp
 }
 
 // DeliverAccept delivers accept acc to acceptor a.
 func (a *Acceptor) DeliverAccept(acc Accept) {
-	// TODO(student): distributed implementation
+	a.acceptIn <- acc
 }
 
 // Internal: handlePrepare processes prepare prp according to the Multi-Paxos

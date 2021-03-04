@@ -3,7 +3,7 @@ package singlepaxos
 // Learner represents a learner as defined by the single-decree Paxos
 // algorithm.
 type Learner struct { 
-	ID int
+	id int
 	NrOfNodes int
 	Val Value
 	Rnd Round
@@ -18,7 +18,7 @@ type Learner struct {
 // nrOfNodes: The total number of Paxos nodes.
 func NewLearner(id int, nrOfNodes int) *Learner {
 	return &Learner{
-		ID: id,
+		id: id,
 		NrOfNodes: nrOfNodes,
 		Val: ZeroValue,
 		Rnd: NoRound,
