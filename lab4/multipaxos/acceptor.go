@@ -7,7 +7,7 @@ type Acceptor struct {
 	id int
 	rnd Round
 	slotID SlotID
-	slots map[SlotID]PromiseSlot
+	slots []PromiseSlot
 	promiseOut chan<- Promise
 	prepareIn chan Prepare
 	acceptIn chan Accept
@@ -26,6 +26,8 @@ type Acceptor struct {
 func NewAcceptor(id int, promiseOut chan<- Promise, learnOut chan<- Learn) *Acceptor {
 	return &Acceptor{
 		id: id,
+		rnd: NoRound,
+		slots: []PromiseSlot{},
 		promiseOut: promiseOut,
 		prepareIn: make(chan Prepare),
 		acceptIn: make(chan Accept),
@@ -80,23 +82,15 @@ func (a *Acceptor) DeliverAccept(acc Accept) {
 func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
 	if prp.Crnd > a.rnd {
 		a.rnd = prp.Crnd
-		a.slotID = prp.Slot
-		accSlots := []PromiseSlot{}
-		for id, slot := range a.slots {
-			if id >= prp.Slot {
+		var accSlots []PromiseSlot
+		for _, slot := range a.slots {
+			if slot.ID >= prp.Slot {
 				accSlots = append(accSlots, slot)
 			}
 		}
-		sort.SliceStable(accSlots, func(i, j int) bool {
-			return accSlots[i].ID < accSlots[j].ID
-		})
-		promise := Promise{To: prp.From, From: a.id, Rnd: a.rnd}
-		if len(accSlots) > 0 {
-			promise.Slots = accSlots
-		}
-		return promise, true
+		return Promise{To: prp.From, From: a.id, Rnd: a.rnd, Slots: accSlots}, true
 	}
-	return Promise{}, false
+	return prm, false
 }
 
 // Internal: handleAccept processes accept acc according to the Multi-Paxos
@@ -104,8 +98,18 @@ func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
 // corresponding learn, then output will be true and lrn contain the learn.  If
 // handleAccept returns false as output, then lrn will be a zero-valued struct.
 func (a *Acceptor) handleAccept(acc Accept) (lrn Learn, output bool) {
-	// TODO(student): algorithm implementation
+	if acc.Rnd >= a.rnd {
+		a.rnd = acc.Rnd
+		a.slotID = acc.Slot
+		accSlot := PromiseSlot{ID: acc.Slot, Vrnd: a.rnd, Vval: acc.Val}
+		if a.rnd < acc.Rnd {
+			a.slots[acc.Slot] = accSlot
+		}
+		a.slots = append(a.slots, PromiseSlot{ID: acc.Slot, Vrnd: acc.Rnd, Vval: acc.Val})
+		sort.SliceStable(a.slots, func(i, j int) bool {
+			return a.slots[i].ID < a.slots[j].ID
+		})
+		return Learn{From: a.id, Rnd: a.rnd, Val: acc.Val, Slot: a.slotID}, true
+	}
 	return Learn{}, false
 }
-
-// TODO(student): Add any other unexported methods needed.
