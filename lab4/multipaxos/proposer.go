@@ -174,7 +174,7 @@ func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
 		}
 	}
 	p.promises = append(p.promises, prm)
-	if len(p.promises) < p.quorum {
+	if len(p.promises) >= p.quorum {
 		return nil, false
 	}
 	slots := []PromiseSlot{}
