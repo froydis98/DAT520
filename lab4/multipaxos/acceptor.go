@@ -1,8 +1,13 @@
 package multipaxos
 
 // Acceptor represents an acceptor as defined by the Multi-Paxos algorithm.
-type Acceptor struct { // TODO(student): algorithm and distributed implementation
-	// Add needed fields
+type Acceptor struct { 
+	id int
+	promiseOut chan<- Promise
+	prepareIn chan Prepare
+	acceptIn chan Accept
+	learnOut chan<- Learn
+	stop chan bool
 }
 
 // NewAcceptor returns a new Multi-Paxos acceptor.
@@ -14,8 +19,14 @@ type Acceptor struct { // TODO(student): algorithm and distributed implementatio
 //
 // learnOut: A send only channel used to send learns to other nodes.
 func NewAcceptor(id int, promiseOut chan<- Promise, learnOut chan<- Learn) *Acceptor {
-	// TODO(student): algorithm and distributed implementation
-	return &Acceptor{}
+	return &Acceptor{
+		id: id,
+		promiseOut: promiseOut,
+		prepareIn: make(chan Prepare),
+		acceptIn: make(chan Accept),
+		learnOut: learnOut,
+		stop: make(chan bool),
+	}
 }
 
 // Start starts a's main run loop as a separate goroutine. The main run loop
@@ -23,14 +34,27 @@ func NewAcceptor(id int, promiseOut chan<- Promise, learnOut chan<- Learn) *Acce
 func (a *Acceptor) Start() {
 	go func() {
 		for {
-			// TODO(student): distributed implementation
+			select {
+			case <-a.stop:
+				return
+			case prepare := <-a.prepareIn:
+				promise, output := a.handlePrepare(prepare)
+				if output {
+					a.promiseOut <- promise
+				}
+			case accept := <-a.acceptIn:
+				learn, output := a.handleAccept(accept)
+				if output {
+					a.learnOut <- learn
+				}
+			}
 		}
 	}()
 }
 
 // Stop stops a's main run loop.
 func (a *Acceptor) Stop() {
-	// TODO(student): distributed implementation
+	a.stop <- true
 }
 
 // DeliverPrepare delivers prepare prp to acceptor a.
@@ -50,7 +74,7 @@ func (a *Acceptor) DeliverAccept(acc Accept) {
 // struct.
 func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
 	// TODO(student): algorithm implementation
-	return Promise{To: -1, From: -1}, true
+	return Promise{}, false
 }
 
 // Internal: handleAccept processes accept acc according to the Multi-Paxos
@@ -59,7 +83,7 @@ func (a *Acceptor) handlePrepare(prp Prepare) (prm Promise, output bool) {
 // handleAccept returns false as output, then lrn will be a zero-valued struct.
 func (a *Acceptor) handleAccept(acc Accept) (lrn Learn, output bool) {
 	// TODO(student): algorithm implementation
-	return Learn{From: -1, Slot: -1, Rnd: -2}, true
+	return Learn{}, false
 }
 
 // TODO(student): Add any other unexported methods needed.
