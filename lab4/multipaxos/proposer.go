@@ -16,7 +16,8 @@ type Proposer struct {
 	adu      SlotID
 	nextSlot SlotID
 
-	promises     []*Promise
+	promises     []Promise
+	acctualPromises []*Promise
 	promiseCount int
 
 	phaseOneDone           bool
@@ -64,7 +65,8 @@ func NewProposer(id, nrOfNodes, adu int, ld leaderdetector.LeaderDetector, prepa
 		adu:      SlotID(adu),
 		nextSlot: 0,
 
-		promises: make([]*Promise, nrOfNodes),
+		promises: make([]Promise, nrOfNodes),
+		acctualPromises: make([]*Promise, nrOfNodes),
 
 		phaseOneProgressTicker: time.NewTicker(time.Second),
 
@@ -162,10 +164,37 @@ func (p *Proposer) IncrementAllDecidedUpTo() {
 // accept messages. If handlePromise returns false as output, then accs will be
 // a nil slice.
 func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
-	// TODO(student)
-	return []Accept{
-		{From: -1, Slot: -1, Rnd: -2},
-	}, true
+	if prm.Rnd != p.crnd {
+		return nil, false
+	}
+	for _, promise := range p.promises {
+		if promise.Rnd == prm.Rnd && promise.From == prm.From {
+			return nil, false
+		}
+	}
+	p.promises = append(p.promises, prm)
+	if len(p.promises) < p.quorum {
+		return nil, false
+	}
+	slots := []PromiseSlot{}
+	for _, promise := range p.promises {
+		for _, promiseSlot := range promise.Slots {
+			slots = append(slots, promiseSlot)
+		}
+	}
+	for _, slot := range slots {
+		accept := Accept{
+			From: p.id,
+			Slot: slot.ID,
+			Rnd: p.crnd,
+			Val: slot.Vval,
+		}
+		accs = append(accs, accept)
+	}
+	if len(accs) <= 0 {
+		return []Accept{}, true
+	}
+	return accs, true
 }
 
 // Internal: increaseCrnd increases proposer p's crnd field by the total number
@@ -178,7 +207,7 @@ func (p *Proposer) increaseCrnd() {
 // crnd and sends a new Prepare with Slot as the current adu.
 func (p *Proposer) startPhaseOne() {
 	p.phaseOneDone = false
-	p.promises = make([]*Promise, p.n)
+	p.promises = make([]Promise, p.n)
 	p.increaseCrnd()
 	p.prepareOut <- Prepare{From: p.id, Slot: p.adu, Crnd: p.crnd}
 }
