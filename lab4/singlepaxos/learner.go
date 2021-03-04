@@ -2,12 +2,12 @@ package singlepaxos
 
 // Learner represents a learner as defined by the single-decree Paxos
 // algorithm.
-type Learner struct { 
-	id int
+type Learner struct {
+	id        int
 	NrOfNodes int
-	Val Value
-	Rnd Round
-	Previous map[int]Value
+	Val       Value
+	Rnd       Round
+	Previous  map[int]Value
 }
 
 // NewLearner returns a new single-decree Paxos learner. It takes the
@@ -18,11 +18,11 @@ type Learner struct {
 // nrOfNodes: The total number of Paxos nodes.
 func NewLearner(id int, nrOfNodes int) *Learner {
 	return &Learner{
-		id: id,
+		id:        id,
 		NrOfNodes: nrOfNodes,
-		Val: ZeroValue,
-		Rnd: NoRound,
-		Previous: make(map[int]Value),
+		Val:       ZeroValue,
+		Rnd:       NoRound,
+		Previous:  make(map[int]Value),
 	}
 }
 

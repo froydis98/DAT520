@@ -3,12 +3,12 @@ package singlepaxos
 // Acceptor represents an acceptor as defined by the single-decree Paxos
 // algorithm.
 type Acceptor struct {
-	id int
-	rnd Round
+	id   int
+	rnd  Round
 	Vrnd Round
 	Vval Value
-	P map[*Proposer]bool
-	L map[*Learner]bool
+	P    map[*Proposer]bool
+	L    map[*Learner]bool
 }
 
 // NewAcceptor returns a new single-decree Paxos acceptor.
@@ -17,12 +17,12 @@ type Acceptor struct {
 // id: The id of the node running this instance of a Paxos acceptor.
 func NewAcceptor(id int) *Acceptor {
 	return &Acceptor{
-		id: id,
-		rnd: 0,
+		id:   id,
+		rnd:  0,
 		Vrnd: NoRound,
 		Vval: ZeroValue,
-		P: make(map[*Proposer]bool),
-		L: make(map[*Learner]bool),
+		P:    make(map[*Proposer]bool),
+		L:    make(map[*Learner]bool),
 	}
 }
 
