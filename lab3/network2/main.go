@@ -4,7 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
+	// "net"
 	"os"
 	"strconv"
 	"strings"
@@ -41,42 +41,43 @@ func main() {
 	endpoints = append(endpoints, endpoint1)
 	endpoints = append(endpoints, endpoint2)
 	endpoints = append(endpoints, endpoint3)
-
 	server1, _ := NewUDPServer(endpoint2, 20)
-
-	conn := make([]*net.UDPAddr, 0)
-	connstrings := make([]string, 0)
 
 	go server1.ServeUDP()
 
-	waiting := true
-	for waiting {
-		for _, endpoint := range endpoints {
-			res, err := SendCommand(endpoint, "AddServerIp", "THis is a test")
-			fmt.Println(res)
-			check(err)
-			if res != "" && !stringInSlice(res, connstrings) {
-				s := strings.Split(res, ",")
-				fmt.Println(s)
-				udpAddr, _ := net.ResolveUDPAddr("udp", s[0])
-				nodeID, _ := strconv.Atoi(s[1])
-				if intInSlice(nodeID, nodeIDs) {
-					waiting = false
-				}
-				anotherServer := OtherServer{s[0], nodeID}
-				OtherServers = append(OtherServers, anotherServer)
-				nodeIDs = append(nodeIDs, nodeID)
-				connstrings = append(connstrings, res)
-				conn = append(conn, udpAddr)
-			}
-			if len(conn) > 2 {
-				waiting = false
-			}
-		}
-	}
+	// waiting := true
+	// for waiting {
+	// 	for _, endpoint := range endpoints {
+	// 		res, err := SendCommand(endpoint, "AddServerIp", "THis is a test")
+	// 		fmt.Println(res)
+	// 		check(err)
+	// 		if res != "" && !stringInSlice(res, connstrings) {
+	// 			s := strings.Split(res, ",")
+	// 			fmt.Println(s)
+	// 			udpAddr, _ := net.ResolveUDPAddr("udp", s[0])
+	// 			nodeID, _ := strconv.Atoi(s[1])
+	// 			if intInSlice(nodeID, nodeIDs) {
+	// 				waiting = false
+	// 			}
+	// 			anotherServer := OtherServer{s[0], nodeID}
+	// 			OtherServers = append(OtherServers, anotherServer)
+	// 			nodeIDs = append(nodeIDs, nodeID)
+	// 			connstrings = append(connstrings, res)
+	// 			conn = append(conn, udpAddr)
+	// 		}
+	// 		if len(conn) > 2 {
+	// 			waiting = false
+	// 		}
+	// 	}
+	// }
+	
+	OtherServers = append(OtherServers, OtherServer{endpoint1, 10})
+	OtherServers = append(OtherServers, OtherServer{endpoint2, 20})
+	OtherServers = append(OtherServers, OtherServer{endpoint3, 5})
+	nodeIDs = append(nodeIDs, 10)
+	nodeIDs = append(nodeIDs, 20)
+	nodeIDs = append(nodeIDs, 5)
 
-	fmt.Println("outside of for loop", connstrings)
-	fmt.Println("outside of for loop", nodeIDs)
 	nld := NewMonLeaderDetector(nodeIDs)
 	NewSuspecter := nld
 	delta := time.Second * 5
@@ -94,7 +95,6 @@ func main() {
 
 		for _, server := range nfd.nodeIDs {
 			time.Sleep(time.Millisecond * 600)
-
 			tempAddr := ""
 			for _, otherservers := range OtherServers {
 
