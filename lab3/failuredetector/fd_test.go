@@ -17,12 +17,12 @@ func TestAllNodesShouldBeAlivePreStart(t *testing.T) {
 	fd.Start()
 	<-done
 
-	if len(fd.alive) != len(clusterOfThree) {
-		t.Errorf("TestAllNodesShouldBeAlivePreStart: alive set contains %d node ids, want %d", len(fd.alive), len(clusterOfThree))
+	if len(fd.Alive) != len(clusterOfThree) {
+		t.Errorf("TestAllNodesShouldBeAlivePreStart: alive set contains %d node ids, want %d", len(fd.Alive), len(clusterOfThree))
 	}
 
 	for _, id := range clusterOfThree {
-		alive := fd.alive[id]
+		alive := fd.Alive[id]
 		if !alive {
 			t.Errorf("TestAllNodesShouldBeAlivePreStart: node %d was not set alive", id)
 			continue
@@ -78,7 +78,7 @@ func TestSetAliveDueToHeartbeatReply(t *testing.T) {
 			t.Errorf("TestSetAliveDueToHBReply: want no outgoing heartbeat, got %v", hb)
 		default:
 		}
-		alive := fd.alive[hbReply.From]
+		alive := fd.Alive[hbReply.From]
 		if !alive {
 			t.Errorf("TestSetAliveDueToHBReply: got heartbeat reply from %d, but node was not marked as alive", i)
 		}
@@ -172,20 +172,20 @@ func TestTimeoutProcedure(t *testing.T) {
 		<-done
 
 		// Set our test data
-		fd.alive = test.alive
-		fd.suspected = test.suspected
+		fd.Alive = test.alive
+		fd.Suspected = test.suspected
 
 		// Trigger timeout procedure
 		fd.timeout()
 
 		// Alive set should always be empty
-		if len(fd.alive) > 0 {
-			t.Errorf("TestTimeoutProcedure %d: Alive set should always be empty after timeout procedure completes, has length %d", i, len(fd.alive))
+		if len(fd.Alive) > 0 {
+			t.Errorf("TestTimeoutProcedure %d: Alive set should always be empty after timeout procedure completes, has length %d", i, len(fd.Alive))
 		}
 
-		if !reflect.DeepEqual(test.wantPostSuspected, fd.suspected) {
+		if !reflect.DeepEqual(test.wantPostSuspected, fd.Suspected) {
 			t.Errorf("TestTimeoutProcedure %d: suspected set post timeout procedure differs", i)
-			printSuspectedDiff(t, fd.suspected, test.wantPostSuspected)
+			printSuspectedDiff(t, fd.Suspected, test.wantPostSuspected)
 		}
 
 		// Check delay

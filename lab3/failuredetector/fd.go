@@ -9,10 +9,10 @@ import (
 // Christian Cachin, Rachid Guerraoui, and Luís Rodrigues: "Introduction to
 // Reliable and Secure Distributed Programming" Springer, 2nd edition, 2011.
 type EvtFailureDetector struct {
-	id        int          // the id of this node
-	nodeIDs   []int        // node ids for every node in cluster
-	alive     map[int]bool // map of node ids considered alive
-	suspected map[int]bool // map of node ids  considered suspected
+	ID        int          // the id of this node
+	NodeIDs   []int        // node ids for every node in cluster
+	Alive     map[int]bool // map of node ids considered alive
+	Suspected map[int]bool // map of node ids  considered suspected
 
 	sr SuspectRestorer // Provided SuspectRestorer implementation
 
@@ -45,15 +45,15 @@ func NewEvtFailureDetector(id int, nodeIDs []int, sr SuspectRestorer, delta time
 	suspected := make(map[int]bool)
 	alive := make(map[int]bool)
 
-	for i := range nodeIDs {
-		alive[i] = true
+	for _, i := range nodeIDs {
+		alive[i] = false
 	}
 
 	return &EvtFailureDetector{
-		id:        id,
-		nodeIDs:   nodeIDs,
-		alive:     alive,
-		suspected: suspected,
+		ID:        id,
+		NodeIDs:   nodeIDs,
+		Alive:     alive,
+		Suspected: suspected,
 
 		sr: sr,
 
@@ -80,13 +80,10 @@ func (e *EvtFailureDetector) Start() {
 			select {
 			case hb := <-e.hbIn:
 				if hb.Request {
-					temp := hb.From
-					hb.From = hb.To
-					hb.To = temp
-					hb.Request = !hb.Request
+					hb := Heartbeat{To: hb.From, From: hb.To, Request: !hb.Request}
 					e.hbSend <- hb
 				} else {
-					e.alive[hb.From] = true
+					e.Alive[hb.From] = true
 				}
 			case <-e.timeoutSignal.C:
 				e.timeout()
@@ -110,8 +107,8 @@ func (e *EvtFailureDetector) Stop() {
 // Internal: timeout runs e's timeout procedure.
 func (e *EvtFailureDetector) timeout() {
 	checkIfSuspected := false
-	for allNodes := range e.alive {
-		if e.suspected[allNodes] {
+	for allNodes := range e.Alive {
+		if e.Suspected[allNodes] {
 			checkIfSuspected = true
 		}
 	}
@@ -119,18 +116,18 @@ func (e *EvtFailureDetector) timeout() {
 		e.delay += e.delta
 	}
 
-	for i := range e.nodeIDs {
-		if e.alive[i] && e.suspected[i] {
-			delete(e.suspected, i)
+	for _, i := range e.NodeIDs {
+		if e.Alive[i] && e.Suspected[i] {
+			delete(e.Suspected, i)
 			e.sr.Restore(i)
-		} else if !e.alive[i] && !e.suspected[i] {
-			e.suspected[i] = true
+		} else if (!e.Alive[i] && !e.Suspected[i]) || e.Alive[i]==false {
+			e.Suspected[i] = true
 			e.sr.Suspect(i)
 		}
-		hb := Heartbeat{To: i, From: e.id, Request: true}
+		hb := Heartbeat{To: i, From: e.ID, Request: true}
 		e.hbSend <- hb
 	}
 
-	e.alive = make(map[int]bool)
+	e.Alive = make(map[int]bool)
 	e.Start()
 }
