@@ -127,7 +127,7 @@ func main() {
 			proposer.DeliverPromise(multipaxos.Promise{To: pr.To, From: pr.From, Rnd: pr.Rnd, Slots: pr.Slots})
 		case lr := <-learnChan:
 			fmt.Printf("\nGot a learn: %v", lr)
-			learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})		
+			learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})
 		}
 	}
 }
