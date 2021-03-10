@@ -20,7 +20,7 @@ type OtherServer struct {
 }
 
 type Endpoints struct {
-	Id int
+	Id   int
 	Addr string
 }
 
@@ -89,25 +89,25 @@ func main() {
 		fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
 		fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
 		select {
-		case <- hbSend:
+		case <-hbSend:
 			for _, server := range OtherServers {
 				time.Sleep(time.Millisecond * 600)
 				HeartbeatString := strconv.Itoa(nfd.ID) + "," + strconv.Itoa(server.nodeID) + "," + "true"
 				res, err := SendCommand(server.addr, "HeartBeat", HeartbeatString)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			splittedRes := strings.Split(res, ",")
-			if len(splittedRes) > 2 {
-				state := false
-				if splittedRes[2] == "true" {
-					state = true
+				if err != nil {
+					fmt.Println(err)
 				}
-				from, _ := strconv.Atoi(splittedRes[0])
-				to, _ := strconv.Atoi(splittedRes[1])
-				nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
-			}
+
+				splittedRes := strings.Split(res, ",")
+				if len(splittedRes) > 2 {
+					state := false
+					if splittedRes[2] == "true" {
+						state = true
+					}
+					from, _ := strconv.Atoi(splittedRes[0])
+					to, _ := strconv.Atoi(splittedRes[1])
+					nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
+				}
 			}
 		}
 	}
