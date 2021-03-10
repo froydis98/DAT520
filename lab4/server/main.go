@@ -89,6 +89,7 @@ func main() {
 	var promiseChan chan multipaxos.Promise
 	var learnChan chan multipaxos.Learn
 	var learner *multipaxos.Learner
+	// var decidedValue *multipaxos.DecidedValue
 
 	nfd.Start()
 	for {
