@@ -82,20 +82,18 @@ func main() {
 	fmt.Println("outside of for loop", nodeIDs)
 	nld := leaderdetector.NewMonLeaderDetector(nodeIDs)
 	delta := time.Second * 5
-	hbSend := make(chan failuredetector.Heartbeat, 16)
+	hbSend := make(chan failuredetector.Heartbeat, 4294967)
 	nfd := failuredetector.NewEvtFailureDetector(server.id, nodeIDs, nld, delta, hbSend)
 	nfd.Start()
 	for {
-		fmt.Println("\nCurrent leader is: ", nld.Leader())
-		if len(nfd.Suspected) > 0 {
-			fmt.Println("Suspected Nodes are: ", nfd.Suspected)
-		}
-		
-		for _, server := range OtherServers {
-			time.Sleep(time.Millisecond * 600)
-
-			HeartbeatString := strconv.Itoa(nfd.ID) + "," + strconv.Itoa(server.nodeID) + "," + "true"
-			res, err := SendCommand(server.addr, "HeartBeat", HeartbeatString)
+		fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
+		fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
+		select {
+		case <- hbSend:
+			for _, server := range OtherServers {
+				time.Sleep(time.Millisecond * 600)
+				HeartbeatString := strconv.Itoa(nfd.ID) + "," + strconv.Itoa(server.nodeID) + "," + "true"
+				res, err := SendCommand(server.addr, "HeartBeat", HeartbeatString)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -110,7 +108,7 @@ func main() {
 				to, _ := strconv.Atoi(splittedRes[1])
 				nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
 			}
-		
+			}
 		}
 	}
 }

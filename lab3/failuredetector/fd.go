@@ -10,9 +10,9 @@ import (
 // Reliable and Secure Distributed Programming" Springer, 2nd edition, 2011.
 type EvtFailureDetector struct {
 	ID        int          // the id of this node
-	NodeIDs   []int        // node ids for every node in cluster
-	Alive     map[int]bool // map of node ids considered alive
-	Suspected map[int]bool // map of node ids  considered suspected
+	nodeIDs   []int        // node ids for every node in cluster
+	alive     map[int]bool // map of node ids considered alive
+	suspected map[int]bool // map of node ids  considered suspected
 
 	sr SuspectRestorer // Provided SuspectRestorer implementation
 
@@ -51,9 +51,9 @@ func NewEvtFailureDetector(id int, nodeIDs []int, sr SuspectRestorer, delta time
 
 	return &EvtFailureDetector{
 		ID:        id,
-		NodeIDs:   nodeIDs,
-		Alive:     alive,
-		Suspected: suspected,
+		nodeIDs:   nodeIDs,
+		alive:     alive,
+		suspected: suspected,
 
 		sr: sr,
 
@@ -83,7 +83,7 @@ func (e *EvtFailureDetector) Start() {
 					hb := Heartbeat{To: hb.From, From: hb.To, Request: !hb.Request}
 					e.hbSend <- hb
 				} else {
-					e.Alive[hb.From] = true
+					e.alive[hb.From] = true
 				}
 			case <-e.timeoutSignal.C:
 				e.timeout()
@@ -106,28 +106,32 @@ func (e *EvtFailureDetector) Stop() {
 
 // Internal: timeout runs e's timeout procedure.
 func (e *EvtFailureDetector) timeout() {
-	checkIfSuspected := false
-	for allNodes := range e.Alive {
-		if e.Suspected[allNodes] {
-			checkIfSuspected = true
+	for i := range e.nodeIDs {
+		if e.alive[i] && (e.alive[i] == e.suspected[i]) {
+			e.delay += e.delta
+			break
 		}
 	}
-	if checkIfSuspected {
-		e.delay += e.delta
-	}
 
-	for _, i := range e.NodeIDs {
-		if e.Alive[i] && e.Suspected[i] {
-			delete(e.Suspected, i)
-			e.sr.Restore(i)
-		} else if (!e.Alive[i] && !e.Suspected[i]) || e.Alive[i]==false {
-			e.Suspected[i] = true
+	for _, i := range e.nodeIDs {
+		if !e.alive[i] && !e.suspected[i] {
+			e.suspected[i] = true
 			e.sr.Suspect(i)
+		} else if e.alive[i] && e.suspected[i] {
+			delete(e.suspected, i)
+			e.sr.Restore(i)
 		}
-		hb := Heartbeat{To: i, From: e.ID, Request: true}
-		e.hbSend <- hb
+		hb := Heartbeat{
+		From:    e.ID,
+		To:      i,
+		Request: true,
+	}
+	e.hbSend <- hb
 	}
 
-	e.Alive = make(map[int]bool)
-	e.Start()
+	e.alive = make(map[int]bool)
+}
+
+func (e *EvtFailureDetector) Suspected() map[int]bool {
+	return e.suspected
 }
