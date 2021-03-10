@@ -4,6 +4,7 @@ package main
 import (
 	"dat520/lab3/failuredetector"
 	"dat520/lab3/leaderdetector"
+	"dat520/lab4/multipaxos"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -55,7 +56,6 @@ func importNetConfig() (NetworkConfig, error) {
 		fmt.Println(err)
 		return netconf, err
 	}
-	fmt.Println(netconf)
 	return netconf, nil
 }
 
@@ -63,7 +63,7 @@ func main() {
 	nodeIDs := make([]int, 0)
 	OtherServers := make([]OtherServer, 0)
 	netconf, _ := importNetConfig()
-	fmt.Println("Write in ID")
+	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
 	var serverID string
 	fmt.Scanln(&serverID)
 	id, err := strconv.Atoi(serverID)
@@ -78,12 +78,18 @@ func main() {
 		OtherServers = append(OtherServers, OtherServer{endpoints.Addr, endpoints.Id})
 		nodeIDs = append(nodeIDs, endpoints.Id)
 	}
-
-	fmt.Println("outside of for loop", nodeIDs)
 	nld := leaderdetector.NewMonLeaderDetector(nodeIDs)
 	delta := time.Second * 5
 	hbSend := make(chan failuredetector.Heartbeat, 4294967)
 	nfd := failuredetector.NewEvtFailureDetector(server.id, nodeIDs, nld, delta, hbSend)
+	var proposer *multipaxos.Proposer
+	var prepareChan chan multipaxos.Prepare
+	var acceptChan chan multipaxos.Accept
+	var acceptor *multipaxos.Acceptor
+	var promiseChan chan multipaxos.Promise
+	var learnChan chan multipaxos.Learn
+	var learner *multipaxos.Learner
+
 	nfd.Start()
 	for {
 		fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
@@ -109,6 +115,18 @@ func main() {
 					nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
 				}
 			}
+		case pr := <-prepareChan:
+			fmt.Printf("\ngot a prepare: %v\n", pr)
+			acceptor.DeliverPrepare(multipaxos.Prepare{From: pr.From, Slot: pr.Slot, Crnd: pr.Crnd})
+		case ac := <-acceptChan:
+			fmt.Printf("\nGot an accept: %v", ac)
+			acceptor.DeliverAccept(multipaxos.Accept{From: ac.From, Slot: ac.Slot, Rnd: ac.Rnd, Val: ac.Val})
+		case pr := <-promiseChan:
+			fmt.Printf("\nGot a promise: %v", pr)
+			proposer.DeliverPromise(multipaxos.Promise{To: pr.To, From: pr.From, Rnd: pr.Rnd, Slots: pr.Slots})
+		case lr := <-learnChan:
+			fmt.Printf("\nGot a learn: %v", lr)
+			learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})		
 		}
 	}
 }

@@ -43,7 +43,6 @@ func (u *UDPServer) ServeUDP() {
 		n, a, _ := u.conn.ReadFromUDP(buffer)
 		stringen := string(buffer[:n])
 		s := strings.Split(stringen, "|:|")
-		fmt.Println(s)
 		if len(s) > 2 {
 			fmt.Println(s[0])
 			byttes := []byte("Unknown command")
@@ -61,9 +60,22 @@ func (u *UDPServer) ServeUDP() {
 				} else {
 					newString = splitter[1] + "," + splitter[0] + "," + "false"
 				}
+			case "Prepare":
+				fmt.Printf("This is the prepare message: %v", s[1])
+				newString = s[1]
+			case "Accept":
+				fmt.Printf("This is the accept message: %v", s[1])
+				newString = s[1]
+			case "Promise":
+				fmt.Printf("This is the promise message: %v", s[1])
+				newString = s[1]
+			case "Learn":
+				fmt.Printf("This is the learn message: %v", s[1])
+				newString = s[1]
 			default:
 				newString = "Unknown command"
 			}
+			fmt.Printf("\nThe message sent is: %v", newString)
 			byttes := []byte(newString)
 			u.conn.WriteTo(byttes, a)
 		}
