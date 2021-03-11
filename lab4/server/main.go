@@ -60,6 +60,8 @@ func importNetConfig() (NetworkConfig, error) {
 }
 
 var ClientChan chan string
+var PrepareIn chan string
+var PromiseIn chan string
 
 func main() {
 	nodeIDs := make([]int, 0)
@@ -87,6 +89,8 @@ func main() {
 	prepareOut := make(chan multipaxos.Prepare, 4294967)
 	acceptOut := make(chan multipaxos.Accept, 4294967)
 	promiseOut := make(chan multipaxos.Promise, 4294967)
+	PrepareIn = make(chan string, 4294967)
+	PromiseIn = make(chan string, 4294967)
 	LearnOut := make(chan multipaxos.Learn, 4294967)
 
 	var proposer *multipaxos.Proposer
@@ -137,21 +141,36 @@ func main() {
 			fmt.Println(value)
 
 		case pr := <-prepareOut:
-			if nld.CurrentLeader == server.id {
-				for _, server := range OtherServers {
-					from := strconv.Itoa(pr.From)
-					crnd := strconv.Itoa(int(pr.Crnd))
-					slot := strconv.Itoa(int(pr.Slot))
-					prepareString := from + "," + crnd + "," + slot
-					fmt.Println(prepareString)
-					res, err := SendCommand(server.addr, "Promise", prepareString)
-					// proposer.DeliverPromise(res)
-					fmt.Println(res, err)
-				}
+			for _, server := range OtherServers {
+				prString, _ := json.Marshal(pr)
+				res, err := SendCommand(server.addr, "Prepare", string(prString))
+				// proposer.DeliverPromise(res)
+				fmt.Println(res, err)
 			}
 
-			fmt.Printf("\ngot a prepare: %v\n", pr)
-			acceptor.DeliverPrepare(pr)
+		case pr := <-PrepareIn:
+			var prepare = &multipaxos.Prepare{}
+			err := json.Unmarshal([]byte(pr), prepare)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println("Prepare After sendt", *prepare, "assssssssssssssssssssssssss")
+			acceptor.DeliverPrepare(*prepare)
+
+		case promise := <-promiseOut:
+			for _, server := range OtherServers {
+				if server.nodeID == promise.To {
+					promiseString, _ := json.Marshal(promise)
+					SendCommand(server.addr, "Promise", string(promiseString))
+				}
+			}
+		case promiseStringIn := <-PromiseIn:
+			var promise = &multipaxos.Promise{}
+			err := json.Unmarshal([]byte(promiseStringIn), promise)
+			if err != nil {
+				fmt.Println(err)
+			}
+			proposer.DeliverPromise(*promise)
 		case ac := <-acceptChan:
 			fmt.Printf("\nGot an accept: %v", ac)
 			acceptor.DeliverAccept(multipaxos.Accept{From: ac.From, Slot: ac.Slot, Rnd: ac.Rnd, Val: ac.Val})

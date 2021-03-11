@@ -95,19 +95,21 @@ func (p *Proposer) Start() {
 		for {
 			select {
 			case prm := <-p.promiseIn:
+
 				accepts, output := p.handlePromise(prm)
+				fmt.Println(accepts, output)
 				if !output {
 					continue
 				}
 				p.nextSlot = p.adu + 1
 				p.acceptsOut.Init()
 				p.phaseOneDone = true
+
 				for _, acc := range accepts {
 					p.acceptsOut.PushBack(acc)
 				}
 				p.sendAccept()
 			case cval := <-p.cvalIn:
-				fmt.Println("------------------------------------------")
 				if p.id != p.leader {
 					continue
 				}
@@ -168,6 +170,7 @@ func (p *Proposer) IncrementAllDecidedUpTo() {
 // accept messages. If handlePromise returns false as output, then accs will be
 // a nil slice.
 func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
+	fmt.Println("AAAA", prm.Rnd, "BBBB", p.crnd)
 	if prm.Rnd != p.crnd {
 		return nil, false
 	}

@@ -64,14 +64,11 @@ func (u *UDPServer) ServeUDP() {
 				ClientChan <- s[1]
 				fmt.Println("Inside the new Case")
 			case "Prepare":
-				fmt.Printf("This is the prepare message: %v", s[1])
-				newString = s[1]
+				PrepareIn <- s[1]
 			case "Accept":
-				fmt.Printf("This is the accept message: %v", s[1])
 				newString = s[1]
 			case "Promise":
-				fmt.Println("\n inside the promise", s[1])
-				newString = s[1]
+				PromiseIn<- s[1]
 			case "Learn":
 				fmt.Printf("This is the learn message: %v", s[1])
 				newString = s[1]
