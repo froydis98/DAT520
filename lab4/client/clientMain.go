@@ -60,7 +60,7 @@ func main() {
 		var first string
 		fmt.Scanln(&first)
 		for _, server := range Servers {
-			res, err := SendCommand(server.addr, "Prepare", first)
+			res, err := SendCommand(server.addr, "ClientRequest", first)
 			if err != nil {
 				fmt.Println(err)
 
