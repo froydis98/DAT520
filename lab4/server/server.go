@@ -60,6 +60,9 @@ func (u *UDPServer) ServeUDP() {
 				} else {
 					newString = splitter[1] + "," + splitter[0] + "," + "false"
 				}
+			case "ClientRequest":
+				SendMessage(s[1])
+				fmt.Println("Inside the new Case")
 			case "Prepare":
 				fmt.Printf("This is the prepare message: %v", s[1])
 				newString = s[1]
@@ -75,7 +78,7 @@ func (u *UDPServer) ServeUDP() {
 			default:
 				newString = "Unknown command"
 			}
-			fmt.Printf("\nThe message sent is: %v", newString)
+			fmt.Println("\nThe message sent is: %v", newString)
 			byttes := []byte(newString)
 			u.conn.WriteTo(byttes, a)
 		}

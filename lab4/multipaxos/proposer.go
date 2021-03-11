@@ -3,6 +3,7 @@ package multipaxos
 import (
 	"container/list"
 	"dat520/lab3/leaderdetector"
+	"fmt"
 	"sort"
 	"time"
 )
@@ -106,6 +107,7 @@ func (p *Proposer) Start() {
 				}
 				p.sendAccept()
 			case cval := <-p.cvalIn:
+				fmt.Println("------------------------------------------")
 				if p.id != p.leader {
 					continue
 				}
@@ -151,6 +153,7 @@ func (p *Proposer) DeliverPromise(prm Promise) {
 
 // DeliverClientValue delivers client value cval from to proposer p.
 func (p *Proposer) DeliverClientValue(cval Value) {
+	fmt.Println("....................................")
 	p.cvalIn <- cval
 }
 
@@ -260,6 +263,7 @@ func (p *Proposer) increaseCrnd() {
 // Internal: startPhaseOne resets all Phase One data, increases the Proposer's
 // crnd and sends a new Prepare with Slot as the current adu.
 func (p *Proposer) startPhaseOne() {
+	fmt.Println("We have started PhaseOne Letttsss gooooooo")
 	p.phaseOneDone = false
 	p.promises = make([]*Promise, p.n)
 	p.increaseCrnd()

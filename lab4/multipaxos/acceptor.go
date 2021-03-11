@@ -1,6 +1,9 @@
 package multipaxos
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+)
 
 // Acceptor represents an acceptor as defined by the Multi-Paxos algorithm.
 type Acceptor struct {
@@ -66,6 +69,7 @@ func (a *Acceptor) Stop() {
 
 // DeliverPrepare delivers prepare prp to acceptor a.
 func (a *Acceptor) DeliverPrepare(prp Prepare) {
+	fmt.Println("We are in acceptor")
 	a.prepareIn <- prp
 }
 

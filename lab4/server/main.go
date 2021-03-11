@@ -59,6 +59,8 @@ func importNetConfig() (NetworkConfig, error) {
 	return netconf, nil
 }
 
+var ClientChan chan string
+
 func main() {
 	nodeIDs := make([]int, 0)
 	OtherServers := make([]OtherServer, 0)
@@ -82,13 +84,21 @@ func main() {
 	delta := time.Second * 5
 	hbSend := make(chan failuredetector.Heartbeat, 4294967)
 	nfd := failuredetector.NewEvtFailureDetector(server.id, nodeIDs, nld, delta, hbSend)
+	prepareOut := make(chan multipaxos.Prepare, 4294967)
+	acceptOut := make(chan multipaxos.Accept, 4294967)
 	var proposer *multipaxos.Proposer
-	var prepareChan chan multipaxos.Prepare
 	var acceptChan chan multipaxos.Accept
 	var acceptor *multipaxos.Acceptor
 	var promiseChan chan multipaxos.Promise
 	var learnChan chan multipaxos.Learn
 	var learner *multipaxos.Learner
+	proposer = multipaxos.NewProposer(server.id, len(OtherServers), -1, nld, prepareOut, acceptOut)
+	proposer.Start()
+
+	acceptor = multipaxos.NewAcceptor(server.id, promiseChan, learnChan)
+	acceptor.Start()
+
+	ClientChan = make(chan string, 10000)
 	// var decidedValue *multipaxos.DecidedValue
 
 	nfd.Start()
@@ -116,9 +126,17 @@ func main() {
 					nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
 				}
 			}
-		case pr := <-prepareChan:
+		case input := <-ClientChan:
+			splitInput := strings.Split(input, ",")
+			res, _ := strconv.Atoi(splitInput[1])
+			b1, _ := strconv.ParseBool(splitInput[2])
+			value := multipaxos.Value{splitInput[0], res, b1, splitInput[3]}
+			fmt.Println(value)
+			proposer.DeliverClientValue(value)
+
+		case pr := <-prepareOut:
 			fmt.Printf("\ngot a prepare: %v\n", pr)
-			acceptor.DeliverPrepare(multipaxos.Prepare{From: pr.From, Slot: pr.Slot, Crnd: pr.Crnd})
+			acceptor.DeliverPrepare(pr)
 		case ac := <-acceptChan:
 			fmt.Printf("\nGot an accept: %v", ac)
 			acceptor.DeliverAccept(multipaxos.Accept{From: ac.From, Slot: ac.Slot, Rnd: ac.Rnd, Val: ac.Val})
@@ -130,4 +148,7 @@ func main() {
 			learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})
 		}
 	}
+}
+func SendMessage(message string) {
+	ClientChan <- message
 }
