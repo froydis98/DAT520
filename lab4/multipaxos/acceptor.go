@@ -1,7 +1,6 @@
 package multipaxos
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -69,7 +68,6 @@ func (a *Acceptor) Stop() {
 
 // DeliverPrepare delivers prepare prp to acceptor a.
 func (a *Acceptor) DeliverPrepare(prp Prepare) {
-	fmt.Println("We are in acceptor")
 	a.prepareIn <- prp
 }
 

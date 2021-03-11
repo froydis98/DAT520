@@ -30,6 +30,7 @@ func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner 
 		decidedOut:   decidedOut,
 		Val:          Value{ClientID: "0000", ClientSeq: -10, Command: "none"},
 		Rnd:          Round(0),
+		learnIn:      make(chan Learn),
 		learnedSlots: make(map[SlotID][]Learn),
 	}
 }

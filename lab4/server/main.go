@@ -62,6 +62,9 @@ func importNetConfig() (NetworkConfig, error) {
 var ClientChan chan string
 var PrepareIn chan string
 var PromiseIn chan string
+var AcceptIn chan string
+var LearnIn chan string
+var NewLearnIn chan string
 
 func main() {
 	nodeIDs := make([]int, 0)
@@ -83,7 +86,7 @@ func main() {
 		nodeIDs = append(nodeIDs, endpoints.Id)
 	}
 	nld := leaderdetector.NewMonLeaderDetector(nodeIDs)
-	delta := time.Second * 2
+	delta := time.Second * 3
 	hbSend := make(chan failuredetector.Heartbeat, 4294967)
 	nfd := failuredetector.NewEvtFailureDetector(server.id, nodeIDs, nld, delta, hbSend)
 	prepareOut := make(chan multipaxos.Prepare, 4294967)
@@ -91,15 +94,20 @@ func main() {
 	promiseOut := make(chan multipaxos.Promise, 4294967)
 	PrepareIn = make(chan string, 4294967)
 	PromiseIn = make(chan string, 4294967)
-	LearnOut := make(chan multipaxos.Learn, 4294967)
-
+	AcceptIn = make(chan string, 4294967)
+	decidedOut := make(chan multipaxos.DecidedValue, 4294967)
+	learnOut := make(chan multipaxos.Learn, 4294967)
+	LearnIn = make(chan string, 4294967)
 	var proposer *multipaxos.Proposer
 	var acceptor *multipaxos.Acceptor
+	var learner *multipaxos.Learner
 	// var learner *multipaxos.Learner
 	proposer = multipaxos.NewProposer(server.id, len(OtherServers), -1, nld, prepareOut, acceptOut)
-	acceptor = multipaxos.NewAcceptor(server.id, promiseOut, LearnOut)
+	acceptor = multipaxos.NewAcceptor(server.id, promiseOut, learnOut)
+	learner = multipaxos.NewLearner(server.id, len(OtherServers), decidedOut)
 	proposer.Start()
 	acceptor.Start()
+	learner.Start()
 
 	ClientChan = make(chan string, 10000)
 	// var decidedValue *multipaxos.DecidedValue
@@ -111,6 +119,7 @@ func main() {
 		select {
 		case <-hbSend:
 			for _, server := range OtherServers {
+				fmt.Println("these are the servers", server)
 				HeartbeatString := strconv.Itoa(nfd.ID) + "," + strconv.Itoa(server.nodeID) + "," + "true"
 				res, err := SendCommand(server.addr, "HeartBeat", HeartbeatString)
 				if err != nil {
@@ -125,16 +134,10 @@ func main() {
 					}
 					from, _ := strconv.Atoi(splittedRes[0])
 					to, _ := strconv.Atoi(splittedRes[1])
+					fmt.Println("Delivering a heartbeart From:", from, " to ", to)
 					nfd.DeliverHeartbeat(failuredetector.Heartbeat{From: from, To: to, Request: state})
 				}
 			}
-		case input := <-ClientChan:
-			splitInput := strings.Split(input, ",")
-			res, _ := strconv.Atoi(splitInput[1])
-			b1, _ := strconv.ParseBool(splitInput[2])
-			value := multipaxos.Value{splitInput[0], res, b1, splitInput[3]}
-			fmt.Println(value)
-
 		case pr := <-prepareOut:
 			fmt.Println(pr.Crnd, "Crnd!!!!!!!!!!!!! Prepare out from proposer")
 			if server.id == nld.CurrentLeader {
@@ -174,15 +177,51 @@ func main() {
 				fmt.Println(err)
 			}
 			proposer.DeliverPromise(*promise)
-			// case ac := <-acceptChan:
-			// 	fmt.Printf("\nGot an accept: %v", ac)
-			// 	acceptor.DeliverAccept(multipaxos.Accept{From: ac.From, Slot: ac.Slot, Rnd: ac.Rnd, Val: ac.Val})
-			// case pr := <-promiseChan:
-			// 	fmt.Printf("\nGot a promise: %v", pr)
-			// 	proposer.DeliverPromise(multipaxos.Promise{To: pr.To, From: pr.From, Rnd: pr.Rnd, Slots: pr.Slots})
-			// case lr := <-learnChan:
-			// 	fmt.Printf("\nGot a learn: %v", lr)
-			// 	learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})
+		case input := <-ClientChan:
+			fmt.Println("We are inside the clientInput chan now")
+			splitInput := strings.Split(input, ",")
+			res, _ := strconv.Atoi(splitInput[1])
+			b1, _ := strconv.ParseBool(splitInput[2])
+			value := multipaxos.Value{splitInput[0], res, b1, splitInput[3]}
+			proposer.DeliverClientValue(value)
+
+		case acceptOut := <-acceptOut:
+			fmt.Println("Insiden Accept Out from Proposer")
+			acceptOutString, _ := json.Marshal(acceptOut)
+			for _, otherserver := range OtherServers {
+				if server.id != otherserver.nodeID {
+					SendCommand(otherserver.addr, "AcceptIn", string(acceptOutString))
+				}
+			}
+		case acceptIn := <-AcceptIn:
+			fmt.Println("Inside accept in right before Acceptor")
+
+			var acceptmsg = &multipaxos.Accept{}
+			err := json.Unmarshal([]byte(acceptIn), acceptmsg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			acceptor.DeliverAccept(*acceptmsg)
+		case learnmsg := <-learnOut:
+			fmt.Println("Insiden Learn Out from Acceptor", learnmsg)
+			learnString, _ := json.Marshal(learnmsg)
+			for _, otherserver := range OtherServers {
+				if otherserver.nodeID != server.id {
+					SendCommand(otherserver.addr, "Learn", string(learnString))
+				}
+			}
+		case learninmsg := <-LearnIn:
+			var learnmsg = &multipaxos.Learn{}
+			err := json.Unmarshal([]byte(learninmsg), learnmsg)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(*learnmsg, "------------------")
+			learner.DeliverLearn(*learnmsg)
+		case decidedout := <-decidedOut:
+			fmt.Println("Inside the decided part")
+
+			SendCommand("127.0.0.1:1000", "NewValue", string(decidedout.Value.Command))
 		}
 	}
 }

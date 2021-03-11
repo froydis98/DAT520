@@ -36,7 +36,7 @@ func NewUDPServer(addr string, id int) (*UDPServer, error) {
 // listening socket and handle incoming client requests as according to the
 // the specification.
 func (u *UDPServer) ServeUDP() {
-	const maxBufferSize = 1024
+	const maxBufferSize = 400000
 
 	buffer := make([]byte, maxBufferSize)
 	for {
@@ -66,11 +66,12 @@ func (u *UDPServer) ServeUDP() {
 				PrepareIn <- s[1]
 			case "Promise":
 				PromiseIn <- s[1]
-			case "Accept":
-				newString = s[1]
+			case "AcceptIn":
+				AcceptIn <- s[1]
 			case "Learn":
-				fmt.Printf("This is the learn message: %v", s[1])
-				newString = s[1]
+				fmt.Println("Inside Learn----", s[1])
+				fmt.Println("We are inside this new learn")
+				LearnIn <- s[1]
 			default:
 				newString = "Unknown command"
 			}
@@ -109,7 +110,7 @@ func SendCommand(udpAddr, cmd, txt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	conn.SetReadDeadline(time.Now().Add(time.Millisecond * 500))
+	conn.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
 	n, err := conn.Read(buf[0:])
 
 	if err != nil {

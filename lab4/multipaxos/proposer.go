@@ -95,7 +95,6 @@ func (p *Proposer) Start() {
 		for {
 			select {
 			case prm := <-p.promiseIn:
-
 				accepts, output := p.handlePromise(prm)
 				fmt.Println(accepts, output)
 				if !output {
@@ -155,7 +154,6 @@ func (p *Proposer) DeliverPromise(prm Promise) {
 
 // DeliverClientValue delivers client value cval from to proposer p.
 func (p *Proposer) DeliverClientValue(cval Value) {
-	fmt.Println("....................................")
 	p.cvalIn <- cval
 }
 

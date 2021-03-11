@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 type OtherServer struct {
@@ -46,15 +47,16 @@ func main() {
 
 	netconf, _ := importNetConfig()
 	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
-	// var proposer *multipaxos.Proposer
-	// var prepareChan chan multipaxos.Prepare
-	// var acceptChan chan multipaxos.Accept
-	// var acceptor *multipaxos.Acceptor
-	// var promiseChan chan multipaxos.Promise
-	// var learnChan chan multipaxos.Learn
-	// var learner *multipaxos.Learner
-	// var decidedValue *multipaxos.DecidedValue
+	var serverID string
+	fmt.Scanln(&serverID)
+	id, err := strconv.Atoi(serverID)
+	if err != nil {
+		fmt.Println(err)
+	}
+	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].Id)
 
+	go server.ServeUDP()
+	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
 	for {
 		fmt.Println("Please enter value you want to send: ")
 		first := ""

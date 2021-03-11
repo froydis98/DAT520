@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -49,16 +48,8 @@ func (u *UDPServer) ServeUDP() {
 		} else {
 			var newString string
 			switch s[0] {
-			case "AddServerIp":
-				newstringId := strconv.Itoa(u.id)
-				newString = u.adr.String() + "," + newstringId
-			case "HeartBeat":
-				splitter := strings.Split(s[1], ",")
-				if splitter[2] == "false" {
-					newString = splitter[1] + "," + splitter[0] + "," + "true"
-				} else {
-					newString = splitter[1] + "," + splitter[0] + "," + "false"
-				}
+			case "NewValue":
+				fmt.Println("The new value is: ", s[1])
 			default:
 				newString = "Unknown command"
 			}
