@@ -57,15 +57,15 @@ func main() {
 
 	for {
 		fmt.Println("Please enter value you want to send: ")
-		var first string
+		first := ""
 		fmt.Scanln(&first)
-		for _, server := range Servers {
-			res, err := SendCommand(server.addr, "ClientRequest", first)
-			if err != nil {
-				fmt.Println(err)
+		if first != "" {
+			for _, server := range Servers {
+				_, err := SendCommand(server.addr, "ClientRequest", first)
+				if err != nil {
 
+				}
 			}
-			fmt.Println(res, "dette er res")
 		}
 
 	}

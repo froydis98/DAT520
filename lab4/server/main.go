@@ -86,6 +86,9 @@ func main() {
 	nfd := failuredetector.NewEvtFailureDetector(server.id, nodeIDs, nld, delta, hbSend)
 	prepareOut := make(chan multipaxos.Prepare, 4294967)
 	acceptOut := make(chan multipaxos.Accept, 4294967)
+	promiseOut := make(chan multipaxos.Promise, 4294967)
+	LearnOut := make(chan multipaxos.Learn, 4294967)
+
 	var proposer *multipaxos.Proposer
 	var acceptChan chan multipaxos.Accept
 	var acceptor *multipaxos.Acceptor
@@ -95,7 +98,7 @@ func main() {
 	proposer = multipaxos.NewProposer(server.id, len(OtherServers), -1, nld, prepareOut, acceptOut)
 	proposer.Start()
 
-	acceptor = multipaxos.NewAcceptor(server.id, promiseChan, learnChan)
+	acceptor = multipaxos.NewAcceptor(server.id, promiseOut, LearnOut)
 	acceptor.Start()
 
 	ClientChan = make(chan string, 10000)
@@ -132,9 +135,21 @@ func main() {
 			b1, _ := strconv.ParseBool(splitInput[2])
 			value := multipaxos.Value{splitInput[0], res, b1, splitInput[3]}
 			fmt.Println(value)
-			proposer.DeliverClientValue(value)
 
 		case pr := <-prepareOut:
+			if nld.CurrentLeader == server.id {
+				for _, server := range OtherServers {
+					from := strconv.Itoa(pr.From)
+					crnd := strconv.Itoa(int(pr.Crnd))
+					slot := strconv.Itoa(int(pr.Slot))
+					prepareString := from + "," + crnd + "," + slot
+					fmt.Println(prepareString)
+					res, err := SendCommand(server.addr, "Promise", prepareString)
+					// proposer.DeliverPromise(res)
+					fmt.Println(res, err)
+				}
+			}
+
 			fmt.Printf("\ngot a prepare: %v\n", pr)
 			acceptor.DeliverPrepare(pr)
 		case ac := <-acceptChan:
@@ -148,7 +163,4 @@ func main() {
 			learner.DeliverLearn(multipaxos.Learn{From: lr.From, Slot: lr.Slot, Rnd: lr.Rnd, Val: lr.Val})
 		}
 	}
-}
-func SendMessage(message string) {
-	ClientChan <- message
 }
