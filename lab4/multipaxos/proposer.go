@@ -70,7 +70,7 @@ func NewProposer(id, nrOfNodes, adu int, ld leaderdetector.LeaderDetector, prepa
 		promises:       make([]*Promise, nrOfNodes),
 		actualPromises: make([]*Promise, nrOfNodes),
 
-		phaseOneProgressTicker: time.NewTicker(time.Second),
+		phaseOneProgressTicker: time.NewTicker(time.Second * 10),
 
 		acceptsOut: list.New(),
 		requestsIn: list.New(),
@@ -266,7 +266,6 @@ func (p *Proposer) increaseCrnd() {
 // Internal: startPhaseOne resets all Phase One data, increases the Proposer's
 // crnd and sends a new Prepare with Slot as the current adu.
 func (p *Proposer) startPhaseOne() {
-	fmt.Println("We have started PhaseOne Letttsss gooooooo")
 	p.phaseOneDone = false
 	p.promises = make([]*Promise, p.n)
 	p.increaseCrnd()

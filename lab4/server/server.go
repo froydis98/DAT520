@@ -62,20 +62,18 @@ func (u *UDPServer) ServeUDP() {
 				}
 			case "ClientRequest":
 				ClientChan <- s[1]
-				fmt.Println("Inside the new Case")
 			case "Prepare":
 				PrepareIn <- s[1]
+			case "Promise":
+				PromiseIn <- s[1]
 			case "Accept":
 				newString = s[1]
-			case "Promise":
-				PromiseIn<- s[1]
 			case "Learn":
 				fmt.Printf("This is the learn message: %v", s[1])
 				newString = s[1]
 			default:
 				newString = "Unknown command"
 			}
-			fmt.Println("\nThe message sent is: %v", newString)
 			byttes := []byte(newString)
 			u.conn.WriteTo(byttes, a)
 		}
