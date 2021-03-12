@@ -142,13 +142,11 @@ func main() {
 			}
 		case pr := <-prepareOut:
 			fmt.Println("The current round is: ", pr.Crnd, "\nPrepare out from proposer")
-			if server.id == nld.CurrentLeader {
-				for _, Otherserver := range OtherServers {
-					prString, _ := json.Marshal(pr)
-					res, err := SendCommand(Otherserver.addr, "Prepare", string(prString))
-					fmt.Println(res, err)
+			for _, Otherserver := range OtherServers {
+				prString, _ := json.Marshal(pr)
+				res, err := SendCommand(Otherserver.addr, "Prepare", string(prString))
+				fmt.Println(res, err)
 
-				}
 			}
 
 		case pr := <-PrepareIn:
@@ -190,9 +188,8 @@ func main() {
 			fmt.Println("Inside Accept Out from Proposer")
 			acceptOutString, _ := json.Marshal(acceptOut)
 			for _, otherserver := range OtherServers {
-				if server.id != otherserver.nodeID {
-					SendCommand(otherserver.addr, "AcceptIn", string(acceptOutString))
-				}
+				SendCommand(otherserver.addr, "AcceptIn", string(acceptOutString))
+
 			}
 		case acceptIn := <-AcceptIn:
 			fmt.Println("Inside acceptIn, right before Acceptor")

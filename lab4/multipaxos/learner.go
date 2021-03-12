@@ -13,6 +13,7 @@ type Learner struct {
 	Val          Value
 	Rnd          Round
 	learnedSlots map[SlotID][]Learn
+	lrnSent      map[SlotID]bool
 }
 
 // NewLearner returns a new Multi-Paxos learner. It takes the
@@ -31,6 +32,7 @@ func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner 
 		quorum:       (nrOfNodes / 2) + 1,
 		decidedOut:   decidedOut,
 		Val:          Value{ClientID: "0000", ClientSeq: -10, Command: "none"},
+		lrnSent:      make(map[SlotID]bool),
 		Rnd:          Round(0),
 		learnIn:      make(chan Learn),
 		learnedSlots: make(map[SlotID][]Learn),
@@ -73,35 +75,36 @@ func (l *Learner) DeliverLearn(lrn Learn) {
 func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) {
 	fmt.Println("INSIDE HANDLE LEARN, ROUND VALUES ARE ", learn.Rnd, l.Rnd)
 	if learn.Rnd < l.Rnd {
-		fmt.Println("FAILED FIRST TEST")
 		return val, sid, false
 	} else if learn.Rnd == l.Rnd {
-		fmt.Println("INSIDE THE ELSE IF")
-
-		if l.learnedSlots[learn.Slot] == nil {
-			fmt.Println("INSIDE THE FIRST IF INSIDE ELSE IF")
-
-			l.learnedSlots[learn.Slot] = []Learn{}
-		}
-		for _, learned := range l.learnedSlots[learn.Slot] {
-			fmt.Println("WE ARE IN THE FOR LOOP")
-
-			if learned.From == learn.From && learned.Rnd == learn.Rnd && learned.Slot == learn.Slot {
-				fmt.Println("FAILED IF INSIDE THE FOR LOOP")
-
-				return val, sid, false
+		if l.learnedSlots[learn.Slot] != nil {
+			for _, learned := range l.learnedSlots[learn.Slot] {
+				if learned.From == learn.From && learned.Rnd == learn.Rnd {
+					fmt.Println("FAILED IF INSIDE THE FOR LOOP")
+					return val, sid, false
+				}
 			}
-		}
-		l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
-		if len(l.learnedSlots[learn.Slot]) == l.quorum {
-			fmt.Println("all learned slots: ", l.learnedSlots)
-			return learn.Val, learn.Slot, true
+			l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
+		} else {
+			l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
 		}
 	} else {
-		fmt.Println("INSIDE THE ELSE ")
 		l.Rnd = learn.Rnd
-		l.learnedSlots = map[SlotID][]Learn{}
-		l.learnedSlots[learn.Slot] = []Learn{learn}
+		l.learnedSlots[learn.Slot] = nil
+		l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
 	}
+	if l.lrnSent[learn.Slot] {
+		fmt.Println("learn has been sent already FAIL")
+		return val, sid, false
+	}
+	fmt.Println("LEN IS: ", len(l.learnedSlots[learn.Slot]), "QOURUM IS: ", l.quorum)
+	if len(l.learnedSlots[learn.Slot]) >= l.quorum {
+		l.lrnSent[learn.Slot] = true
+		fmt.Println("--------------------------- SUCCESS")
+
+		return learn.Val, learn.Slot, true
+	}
+	fmt.Println("REACHED BOTTOM FAIL")
+
 	return val, sid, false
 }
