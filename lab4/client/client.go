@@ -53,7 +53,6 @@ func (u *UDPServer) ServeUDP() {
 			default:
 				newString = "Unknown command"
 			}
-			fmt.Printf("\nThe message sent is: %v", newString)
 			byttes := []byte(newString)
 			u.conn.WriteTo(byttes, a)
 		}

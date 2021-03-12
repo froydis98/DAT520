@@ -54,16 +54,25 @@ func main() {
 		fmt.Println(err)
 	}
 	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].Id)
-
+	clientId := strconv.Itoa(netconf.Endpoints[id].Id)
+	clientSeq := 0
 	go server.ServeUDP()
 	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
 	for {
+		clientSeq++
 		fmt.Println("Please enter value you want to send: ")
-		first := ""
+		var first, Valuestring string
+		clientSeqString := strconv.Itoa(clientSeq)
 		fmt.Scanln(&first)
 		if first != "" {
+			Valuestring = clientId + "," + clientSeqString + "," + "false," + first
+		} else {
+			Valuestring = clientId + "," + clientSeqString + "," + "true," + first
+		}
+
+		if first != "" {
 			for _, server := range Servers {
-				_, err := SendCommand(server.addr, "ClientRequest", first)
+				_, err := SendCommand(server.addr, "ClientRequest", Valuestring)
 				if err != nil {
 					fmt.Println(err)
 				}
