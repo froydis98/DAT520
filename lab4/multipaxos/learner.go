@@ -83,7 +83,8 @@ func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) 
 			}
 		}
 		l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
-		if len(l.learnedSlots[learn.Slot]) >= l.quorum {
+		if len(l.learnedSlots[learn.Slot]) == l.quorum {
+			fmt.Println("all learned slots: ", l.learnedSlots)
 			return learn.Val, learn.Slot, true
 		}
 	} else {
@@ -91,6 +92,5 @@ func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) 
 		l.learnedSlots = map[SlotID][]Learn{}
 		l.learnedSlots[learn.Slot] = []Learn{learn}
 	}
-	fmt.Println("all learned slots: ", l.learnedSlots)
 	return val, sid, false
 }
