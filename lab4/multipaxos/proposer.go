@@ -168,7 +168,7 @@ func (p *Proposer) IncrementAllDecidedUpTo() {
 // accept messages. If handlePromise returns false as output, then accs will be
 // a nil slice.
 func (p *Proposer) handlePromise(prm Promise) (accs []Accept, output bool) {
-	fmt.Println("AAAA", prm.Rnd, "BBBB", p.crnd)
+	fmt.Println("Promise says this round: ", prm.Rnd, "\nPrepare says this round: ", p.crnd)
 	if prm.Rnd != p.crnd {
 		return nil, false
 	}
