@@ -65,6 +65,7 @@ var PromiseIn chan string
 var AcceptIn chan string
 var LearnIn chan string
 var NewLearnIn chan string
+var UpdateAdu chan string
 
 func main() {
 	nodeIDs := make([]int, 0)
@@ -102,6 +103,7 @@ func main() {
 	learnOut := make(chan multipaxos.Learn, 4294967)
 	LearnIn = make(chan string, 4294967)
 	ClientChan = make(chan string, 4294967)
+	UpdateAdu = make(chan string, 4294967)
 	var proposer *multipaxos.Proposer
 	var acceptor *multipaxos.Acceptor
 	var learner *multipaxos.Learner
@@ -150,7 +152,6 @@ func main() {
 			}
 
 		case pr := <-PrepareIn:
-
 			var prepare = &multipaxos.Prepare{}
 			err := json.Unmarshal([]byte(pr), prepare)
 			if err != nil {
@@ -205,9 +206,7 @@ func main() {
 			fmt.Println("Insiden Learn Out from Acceptor")
 			learnString, _ := json.Marshal(learnmsg)
 			for _, otherserver := range OtherServers {
-				if otherserver.nodeID != server.id {
-					SendCommand(otherserver.addr, "Learn", string(learnString))
-				}
+				SendCommand(otherserver.addr, "Learn", string(learnString))
 			}
 		case learninmsg := <-LearnIn:
 			var learnmsg = &multipaxos.Learn{}
@@ -219,10 +218,23 @@ func main() {
 			learner.DeliverLearn(*learnmsg)
 		case decidedout := <-decidedOut:
 			fmt.Println("Inside the decided value part")
-			proposer.IncrementAllDecidedUpTo()
-			for _, client := range clientAddr {
-				SendCommand(client, "NewValue", string(decidedout.Value.Command))
+			if server.id == nld.CurrentLeader {
+				for _, otherServer := range OtherServers {
+					SendCommand(otherServer.addr, "UpdateAdu", "test")
+				}
+				for _, client := range clientAddr {
+					fmt.Println("KKKKKKKKKKKKKKK", decidedout)
+					clientSequence := strconv.Itoa(decidedout.Value.ClientSeq)
+					outString := string(decidedout.Value.Command) + " - " + string(decidedout.Value.ClientID) + " - " + clientSequence
+					SendCommand(client, "NewValue", string(outString))
+				}
 			}
+
+		case valueIn := <-UpdateAdu:
+			if valueIn != "" {
+				fmt.Println("Got a value")
+			}
+			proposer.IncrementAllDecidedUpTo()
 		}
 	}
 }

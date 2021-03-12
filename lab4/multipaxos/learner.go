@@ -71,22 +71,36 @@ func (l *Learner) DeliverLearn(lrn Learn) {
 // slot that was decided and val contain the decided value. If handleLearn
 // returns false as output, then val and sid will have their zero value.
 func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) {
+	fmt.Println("INSIDE HANDLE LEARN, ROUND VALUES ARE ", learn.Rnd, l.Rnd)
 	if learn.Rnd < l.Rnd {
+		fmt.Println("FAILED FIRST TEST")
 		return val, sid, false
 	} else if learn.Rnd == l.Rnd {
+		fmt.Println("INSIDE THE ELSE IF")
+
 		if l.learnedSlots[learn.Slot] == nil {
+			fmt.Println("INSIDE THE FIRST IF INSIDE ELSE IF")
+
 			l.learnedSlots[learn.Slot] = []Learn{}
 		}
 		for _, learned := range l.learnedSlots[learn.Slot] {
+			fmt.Println("WE ARE IN THE FOR LOOP")
+
 			if learned.From == learn.From && learned.Rnd == learn.Rnd && learned.Slot == learn.Slot {
+				fmt.Println("FAILED IF INSIDE THE FOR LOOP")
+
 				return val, sid, false
 			}
 		}
 		l.learnedSlots[learn.Slot] = append(l.learnedSlots[learn.Slot], learn)
-		if len(l.learnedSlots[learn.Slot]) >= l.quorum {
+		fmt.Println("OUTSIDE THE FINAL IF THAT GIVES SUCCESS")
+
+		if len(l.learnedSlots[learn.Slot]) == l.quorum {
+			fmt.Println("SUCCESS")
 			return learn.Val, learn.Slot, true
 		}
 	} else {
+		fmt.Println("INSIDE THE ELSE ")
 		l.Rnd = learn.Rnd
 		l.learnedSlots = map[SlotID][]Learn{}
 		l.learnedSlots[learn.Slot] = []Learn{learn}

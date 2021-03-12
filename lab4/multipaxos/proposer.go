@@ -113,9 +113,11 @@ func (p *Proposer) Start() {
 					continue
 				}
 				p.requestsIn.PushBack(cval)
+				fmt.Println("IS PHASE ONE DONE ?", p.phaseOneDone)
 				if !p.phaseOneDone {
 					continue
 				}
+				fmt.Println("WE ARE BEFORE p.sendAccept")
 				p.sendAccept()
 			case <-p.incDcd:
 				p.adu++
@@ -286,7 +288,6 @@ func (p *Proposer) sendAccept() {
 		// outer for loop.
 		return
 	}
-
 	// Pri 1: If bounded by any accepts from Phase One -> send previously
 	// generated accept and return.
 	if p.acceptsOut.Len() > 0 {
