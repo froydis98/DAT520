@@ -1,5 +1,7 @@
 package multipaxos
 
+import "fmt"
+
 // Learner represents a learner as defined by the Multi-Paxos algorithm.
 type Learner struct {
 	ID           int
@@ -89,5 +91,6 @@ func (l *Learner) handleLearn(learn Learn) (val Value, sid SlotID, output bool) 
 		l.learnedSlots = map[SlotID][]Learn{}
 		l.learnedSlots[learn.Slot] = []Learn{learn}
 	}
+	fmt.Println("all learned slots: ", l.learnedSlots)
 	return val, sid, false
 }
