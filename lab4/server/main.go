@@ -68,6 +68,9 @@ var NewLearnIn chan string
 
 func main() {
 	nodeIDs := make([]int, 0)
+	clientAddr := make([]string, 0)
+	clientAddr = append(clientAddr, "127.0.0.1:1000")
+	clientAddr = append(clientAddr, "127.0.0.1:1001")
 	OtherServers := make([]OtherServer, 0)
 	netconf, _ := importNetConfig()
 	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
@@ -98,19 +101,16 @@ func main() {
 	decidedOut := make(chan multipaxos.DecidedValue, 4294967)
 	learnOut := make(chan multipaxos.Learn, 4294967)
 	LearnIn = make(chan string, 4294967)
+	ClientChan = make(chan string, 4294967)
 	var proposer *multipaxos.Proposer
 	var acceptor *multipaxos.Acceptor
 	var learner *multipaxos.Learner
-	// var learner *multipaxos.Learner
 	proposer = multipaxos.NewProposer(server.id, len(OtherServers), -1, nld, prepareOut, acceptOut)
 	acceptor = multipaxos.NewAcceptor(server.id, promiseOut, learnOut)
 	learner = multipaxos.NewLearner(server.id, len(OtherServers), decidedOut)
 	proposer.Start()
 	acceptor.Start()
 	learner.Start()
-
-	ClientChan = make(chan string, 10000)
-	// var decidedValue *multipaxos.DecidedValue
 
 	nfd.Start()
 	for {
@@ -139,7 +139,7 @@ func main() {
 				}
 			}
 		case pr := <-prepareOut:
-			fmt.Println(pr.Crnd, "Crnd!!!!!!!!!!!!! Prepare out from proposer")
+			fmt.Println("The current round is: ", pr.Crnd, "\nPrepare out from proposer")
 			if server.id == nld.CurrentLeader {
 				for _, Otherserver := range OtherServers {
 					prString, _ := json.Marshal(pr)
@@ -156,11 +156,11 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println("Prepare After sendt", *&prepare.Crnd, "assssssssssssssssssssssssss")
+			fmt.Println("Prepare After sendt \nThe round is: ", *&prepare.Crnd)
 			acceptor.DeliverPrepare(*prepare)
 
 		case promise := <-promiseOut:
-			fmt.Println(promise.Rnd, "Crnd!!!!!!!!!!!!! Promise out from Accepter")
+			fmt.Println("The round is: ", promise.Rnd, "\nPromise out from Accepter")
 
 			for _, server := range OtherServers {
 				if server.nodeID == promise.To {
@@ -171,14 +171,14 @@ func main() {
 		case promiseStringIn := <-PromiseIn:
 			var promise = &multipaxos.Promise{}
 			err := json.Unmarshal([]byte(promiseStringIn), promise)
-			fmt.Println(promise.Rnd, "Crnd!!!!!!!!!!!!! Promise in to proposer")
+			fmt.Println("The round is: ", promise.Rnd, "\nPromise in to proposer")
 
 			if err != nil {
 				fmt.Println(err)
 			}
 			proposer.DeliverPromise(*promise)
 		case input := <-ClientChan:
-			fmt.Println("We are inside the clientInput chan now")
+			fmt.Println("Inside the client channel")
 			splitInput := strings.Split(input, ",")
 			res, _ := strconv.Atoi(splitInput[1])
 			b1, _ := strconv.ParseBool(splitInput[2])
@@ -186,7 +186,7 @@ func main() {
 			proposer.DeliverClientValue(value)
 
 		case acceptOut := <-acceptOut:
-			fmt.Println("Insiden Accept Out from Proposer")
+			fmt.Println("Inside Accept Out from Proposer")
 			acceptOutString, _ := json.Marshal(acceptOut)
 			for _, otherserver := range OtherServers {
 				if server.id != otherserver.nodeID {
@@ -194,8 +194,7 @@ func main() {
 				}
 			}
 		case acceptIn := <-AcceptIn:
-			fmt.Println("Inside accept in right before Acceptor")
-
+			fmt.Println("Inside acceptIn, right before Acceptor")
 			var acceptmsg = &multipaxos.Accept{}
 			err := json.Unmarshal([]byte(acceptIn), acceptmsg)
 			if err != nil {
@@ -203,7 +202,7 @@ func main() {
 			}
 			acceptor.DeliverAccept(*acceptmsg)
 		case learnmsg := <-learnOut:
-			fmt.Println("Insiden Learn Out from Acceptor", learnmsg)
+			fmt.Println("Insiden Learn Out from Acceptor")
 			learnString, _ := json.Marshal(learnmsg)
 			for _, otherserver := range OtherServers {
 				if otherserver.nodeID != server.id {
@@ -216,12 +215,14 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println(*learnmsg, "------------------")
+			fmt.Println("The learn message is: ", *learnmsg)
 			learner.DeliverLearn(*learnmsg)
 		case decidedout := <-decidedOut:
-			fmt.Println("Inside the decided part")
-
-			SendCommand("127.0.0.1:1000", "NewValue", string(decidedout.Value.Command))
+			fmt.Println("Inside the decided value part")
+			proposer.IncrementAllDecidedUpTo()
+			for _, client := range clientAddr {
+				SendCommand(client, "NewValue", string(decidedout.Value.Command))
+			}
 		}
 	}
 }

@@ -70,7 +70,6 @@ func (u *UDPServer) ServeUDP() {
 				AcceptIn <- s[1]
 			case "Learn":
 				fmt.Println("Inside Learn----", s[1])
-				fmt.Println("We are inside this new learn")
 				LearnIn <- s[1]
 			default:
 				newString = "Unknown command"

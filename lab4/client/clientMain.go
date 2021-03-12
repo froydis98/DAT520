@@ -65,7 +65,7 @@ func main() {
 			for _, server := range Servers {
 				_, err := SendCommand(server.addr, "ClientRequest", first)
 				if err != nil {
-
+					fmt.Println(err)
 				}
 			}
 		}
