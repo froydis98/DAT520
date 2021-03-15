@@ -21,7 +21,7 @@ type OtherServer struct {
 }
 
 type Endpoints struct {
-	Id   int
+	ID   int
 	Addr string
 }
 
@@ -43,8 +43,8 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func importNetConfig() (NetworkConfig, error) {
-	netConfigFile, err := os.Open("netConfig.json")
+func importNetConfig(path string) (NetworkConfig, error) {
+	netConfigFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -70,25 +70,28 @@ var UpdateAdu chan string
 func main() {
 	nodeIDs := make([]int, 0)
 	clientAddr := make([]string, 0)
-	clientAddr = append(clientAddr, "127.0.0.1:1000")
-	clientAddr = append(clientAddr, "127.0.0.1:1001")
 	OtherServers := make([]OtherServer, 0)
-	netconf, _ := importNetConfig()
-	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
+	netconf, _ := importNetConfig("./netConfig.json")
+	netConfClients, _ := importNetConfig("./clientNetConfig.json")
+	fmt.Printf("The servers are: %v \n", netconf.Endpoints)
+	fmt.Println("Write in the index of the one you want to run: ")
 	var serverID string
 	fmt.Scanln(&serverID)
 	id, err := strconv.Atoi(serverID)
 	if err != nil {
 		fmt.Println(err)
 	}
-	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].Id)
+	for _, endpoint := range netconf.Endpoints {
+		OtherServers = append(OtherServers, OtherServer{endpoint.Addr, endpoint.ID})
+		nodeIDs = append(nodeIDs, endpoint.ID)
+	}
+	for _, endpoint := range netConfClients.Endpoints {
+		clientAddr = append(clientAddr, endpoint.Addr)
+	}
+	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].ID)
 
 	go server.ServeUDP()
 
-	for _, endpoints := range netconf.Endpoints {
-		OtherServers = append(OtherServers, OtherServer{endpoints.Addr, endpoints.Id})
-		nodeIDs = append(nodeIDs, endpoints.Id)
-	}
 	nld := leaderdetector.NewMonLeaderDetector(nodeIDs)
 	delta := time.Second * 3
 	hbSend := make(chan failuredetector.Heartbeat, 4294967)

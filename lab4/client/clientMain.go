@@ -15,7 +15,7 @@ type OtherServer struct {
 }
 
 type Endpoints struct {
-	Id   int
+	ID   int
 	Addr string
 }
 
@@ -23,8 +23,8 @@ type NetworkConfig struct {
 	Endpoints []Endpoints
 }
 
-func importNetConfig() (NetworkConfig, error) {
-	netConfigFile, err := os.Open("netConfig.json")
+func importNetConfig(path string) (NetworkConfig, error) {
+	netConfigFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -40,12 +40,9 @@ func importNetConfig() (NetworkConfig, error) {
 }
 
 func main() {
-	Servers := make([]OtherServer, 0)
-	Servers = append(Servers, OtherServer{"127.0.0.1:5", 5})
-	Servers = append(Servers, OtherServer{"127.0.0.1:1", 1})
-	Servers = append(Servers, OtherServer{"127.0.0.1:2", 2})
-
-	netconf, _ := importNetConfig()
+	netconf, _ := importNetConfig("clientNetConfig.json")
+	netconfServers, _ := importNetConfig("netConfig.json")
+	fmt.Println(netconf)
 	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
 	var serverID string
 	fmt.Scanln(&serverID)
@@ -53,8 +50,14 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].Id)
-	clientId := strconv.Itoa(netconf.Endpoints[id].Id)
+	
+	Servers := make([]OtherServer, 0)
+	for _, endpoint := range netconfServers.Endpoints {
+		Servers = append(Servers, OtherServer{endpoint.Addr, endpoint.ID})
+	}
+
+	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].ID)
+	clientID := strconv.Itoa(netconf.Endpoints[id].ID)
 	clientSeq := 0
 	go server.ServeUDP()
 	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
@@ -65,9 +68,9 @@ func main() {
 		clientSeqString := strconv.Itoa(clientSeq)
 		fmt.Scanln(&first)
 		if first != "" {
-			Valuestring = clientId + "," + clientSeqString + "," + "false," + first
+			Valuestring = clientID + "," + clientSeqString + "," + "false," + first
 		} else {
-			Valuestring = clientId + "," + clientSeqString + "," + "true," + first
+			Valuestring = clientID + "," + clientSeqString + "," + "true," + first
 		}
 
 		if first != "" {
