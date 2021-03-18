@@ -247,18 +247,20 @@ func main() {
 				return
 			}
 			if decidedout.Value.Noop != true {
-				val, ok := bankAccounts[decidedout.Value.AccountNum]
-				fmt.Println("Bank Account is: ", val.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
-
+				_, ok := bankAccounts[decidedout.Value.AccountNum]
 				if ok == false {
 					fmt.Println("Bank account not found, creating new account")
 					bankAccounts[decidedout.Value.AccountNum] = bank.Account{Number: decidedout.Value.AccountNum, Balance: 0}
 				}
-
+				for _, account := range bankAccounts {
+					fmt.Println("THis is account", account)
+				}
 				account := bankAccounts[decidedout.Value.AccountNum]
-				fmt.Println("Bank Account is: ", val.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+				fmt.Println("Bank Account is: ", account.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
 
 				transaction := account.Process(decidedout.Value.Tnx)
+				fmt.Println("Bank Account is: ", account.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+				bankAccounts[decidedout.Value.AccountNum] = account
 				fmt.Println(transaction)
 				if server.id == nld.CurrentLeader {
 					for _, client := range clientAddr {
