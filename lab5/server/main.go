@@ -204,6 +204,7 @@ func main() {
 				fmt.Println(err)
 			}
 			value := multipaxos.Value{ClientID: clientVal.ClientID, ClientSeq: clientVal.ClientSeq, Noop: clientVal.Noop, AccountNum: clientVal.AccountNum, Tnx: clientVal.Tnx}
+			fmt.Println(value)
 			proposer.DeliverClientValue(value)
 
 		case acceptOut := <-acceptOut:

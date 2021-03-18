@@ -66,7 +66,7 @@ func main() {
 	for {
 		clientSeq++
 		accountNr, OP, amount := AskForInfo()
-		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: true, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
+		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: false, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
 		valueString, _ := json.Marshal(val)
 		for _, server := range Servers {
 			_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
@@ -77,7 +77,7 @@ func main() {
 	}
 }
 
-
+// AskForInfo - input from client
 func AskForInfo() (int, int, int) {
 	fmt.Println("Please enter the account number: ")
 	var acc = bufio.NewScanner(os.Stdin)
@@ -90,18 +90,20 @@ func AskForInfo() (int, int, int) {
 		if op.Text() != "" {
 			var am = bufio.NewScanner(os.Stdin)
 			if OP == 1 {
-				fmt.Println("How much money do you want to withdraw?")
+				fmt.Println("How much money do you want to deposit?")
 				am.Scan()
 			} else if OP == 2 {
-				fmt.Println("How much money do you want to deposit?")
+				fmt.Println("How much money do you want to withdraw?")
 				am.Scan()
 			} else {
 				fmt.Println("You want to see the balance")
 			}
+			accountNr, _ := strconv.Atoi(acc.Text())
+			amount, _ := strconv.Atoi(am.Text())
 			if am.Text() != "" {
-				accountNr, _ := strconv.Atoi(acc.Text())
-				amount, _ := strconv.Atoi(am.Text())
 				return accountNr, OP, amount
+			} else {
+				return accountNr, OP, 0
 			}
 		}
 	}
