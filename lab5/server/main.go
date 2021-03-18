@@ -133,34 +133,46 @@ func main() {
 	ClientChan = make(chan string, 4294967)
 	UpdateAdu = make(chan string, 4294967)
 	ReConfig = make(chan string, 4294967)
+	newNmrServers := 0
 	for {
+		breaker := false
 		time.Sleep(time.Second)
+		currentServers = make(map[int]OtherServer, 0)
 		var NmrServers int
 		fmt.Println("We are waiting in first For loop for current servers")
+		if newNmrServers != 0 {
+			nmrServersString := strconv.Itoa(newNmrServers)
+			ReConfig <- nmrServersString
+		}
 		select {
 		case nmrServers := <-ReConfig:
-			currentServers := make(map[int]OtherServer, 0)
+			fmt.Println("We are inside of the Reconfig ")
 			NmrServers, _ = strconv.Atoi(nmrServers)
 			for i := 0; i < NmrServers; i++ {
 				{
-					currentServers[OtherServers[i].nodeID] = OtherServers[i]
-					OtherServers = append(OtherServers, OtherServers[i])
+					fmt.Println("Inside for loop nmr: ", i)
+					currentServers[OtherServers[0].nodeID] = OtherServers[0]
+					fmt.Println("Current Servers Round :", i, currentServers)
+					OtherServers = append(OtherServers, OtherServers[0])
+					fmt.Println("OtherServers after append ", OtherServers)
 					OtherServers = OtherServers[1:]
+					fmt.Println("OtherServers after slice ", OtherServers)
 				}
 			}
 		default:
 			continue
 		}
-		_, ok := currentServers[id]
+		fmt.Println("Current Servers", currentServers, "Id is :", id+2)
+		_, ok := currentServers[id+2]
 		if ok == true {
 			var proposer *multipaxos.Proposer
 			var acceptor *multipaxos.Acceptor
 			var learner *multipaxos.Learner
 			bankAccounts := make(map[int]bank.Account)
 			adu := -1
-			proposer = multipaxos.NewProposer(server.id, len(OtherServers), adu, nld, prepareOut, acceptOut)
+			proposer = multipaxos.NewProposer(server.id, len(currentServers), adu, nld, prepareOut, acceptOut)
 			acceptor = multipaxos.NewAcceptor(server.id, promiseOut, learnOut)
-			learner = multipaxos.NewLearner(server.id, len(OtherServers), decidedOut)
+			learner = multipaxos.NewLearner(server.id, len(currentServers), decidedOut)
 			proposer.Start()
 			acceptor.Start()
 			learner.Start()
@@ -169,9 +181,12 @@ func main() {
 			for {
 				fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
 				fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
+				if breaker {
+					break
+				}
 				select {
 				case <-hbSend:
-					for _, server := range OtherServers {
+					for _, server := range currentServers {
 						fmt.Println("these are the servers", server)
 						HeartbeatString := strconv.Itoa(nfd.ID) + "," + strconv.Itoa(server.nodeID) + "," + "true"
 						res, err := SendCommand(server.addr, "HeartBeat", HeartbeatString)
@@ -193,13 +208,21 @@ func main() {
 					}
 				case pr := <-prepareOut:
 					fmt.Println("The current round is: ", pr.Crnd, "\nPrepare out from proposer")
-					for _, Otherserver := range OtherServers {
+					for _, Otherserver := range currentServers {
 						prString, _ := json.Marshal(pr)
 						res, err := SendCommand(Otherserver.addr, "Prepare", string(prString))
 						fmt.Println(res, err)
 
 					}
-
+				case test := <-ReConfig:
+					fmt.Println("Inside the Reconfig in the inner for loop", test)
+					breaker = true
+					proposer.Stop()
+					learner.Stop()
+					acceptor.Stop()
+					nmrserver, _ := strconv.Atoi(test)
+					newNmrServers = nmrserver
+					break
 				case pr := <-PrepareIn:
 					var prepare = &multipaxos.Prepare{}
 					err := json.Unmarshal([]byte(pr), prepare)
@@ -212,7 +235,7 @@ func main() {
 				case promise := <-promiseOut:
 					fmt.Println("The round is: ", promise.Rnd, "\nPromise out from Accepter")
 
-					for _, server := range OtherServers {
+					for _, server := range currentServers {
 						if server.nodeID == promise.To {
 							promiseString, _ := json.Marshal(promise)
 							SendCommand(server.addr, "Promise", string(promiseString))
@@ -241,7 +264,7 @@ func main() {
 				case acceptOut := <-acceptOut:
 					fmt.Println("Inside Accept Out from Proposer")
 					acceptOutString, _ := json.Marshal(acceptOut)
-					for _, otherserver := range OtherServers {
+					for _, otherserver := range currentServers {
 						SendCommand(otherserver.addr, "AcceptIn", string(acceptOutString))
 
 					}
@@ -256,7 +279,7 @@ func main() {
 				case learnmsg := <-learnOut:
 					fmt.Println("Insiden Learn Out from Acceptor")
 					learnString, _ := json.Marshal(learnmsg)
-					for _, otherserver := range OtherServers {
+					for _, otherserver := range currentServers {
 						SendCommand(otherserver.addr, "Learn", string(learnString))
 					}
 				case learninmsg := <-LearnIn:
@@ -293,7 +316,7 @@ func main() {
 						}
 					}
 					if server.id == nld.CurrentLeader {
-						for _, otherServer := range OtherServers {
+						for _, otherServer := range currentServers {
 							SendCommand(otherServer.addr, "UpdateAdu", "test")
 						}
 					}
