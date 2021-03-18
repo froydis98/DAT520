@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bufio"
 	"dat520/lab5/bank"
 	"dat520/lab5/multipaxos"
 	"encoding/json"
@@ -62,34 +63,47 @@ func main() {
 	server, _ := NewUDPServer(netconf.Endpoints[id].Addr, netconf.Endpoints[id].ID)
 	clientSeq := 0
 	go server.ServeUDP()
-	fmt.Printf("The servers are: %v \nWrite in the index of the one you want to run: ", netconf.Endpoints)
 	for {
 		clientSeq++
-		fmt.Println("Please enter the account number: ")
-		var acc string
-		fmt.Scanln(&acc)
-		fmt.Println("What kind of transaction do you want to do?\n0 = Balance\n1 = Deposit\n2 = Withdrawal")
-		var op bank.Operation
-		fmt.Scanln(op)
-		var amount int
-		if op == 1 {
-			fmt.Println("How much money do you want to withdraw?")
-			fmt.Scanln(amount)
-		} else if op == 2 {
-			fmt.Println("How much money do you want to deposit?")
-			fmt.Scanln(amount)
-		}
-		accountNr, _ := strconv.Atoi(acc)
-		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: true, AccountNum: accountNr, Tnx: bank.Transaction{Op: op, Amount: amount}}
+		accountNr, OP, amount := AskForInfo()
+		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: true, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
 		valueString, _ := json.Marshal(val)
-		if acc != "" {
-			for _, server := range Servers {
-				_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
-				if err != nil {
-					fmt.Println(err)
-				}
+		for _, server := range Servers {
+			_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
+			if err != nil {
+				fmt.Println(err)
 			}
 		}
-
 	}
+}
+
+
+func AskForInfo() (int, int, int) {
+	fmt.Println("Please enter the account number: ")
+	var acc = bufio.NewScanner(os.Stdin)
+	acc.Scan()
+	if acc.Text() != "" {
+		fmt.Println("What kind of transaction do you want to do?\n0 = Balance\n1 = Deposit\n2 = Withdrawal")
+		var op = bufio.NewScanner(os.Stdin)
+		op.Scan()
+		OP, _ := strconv.Atoi(op.Text())
+		if op.Text() != "" {
+			var am = bufio.NewScanner(os.Stdin)
+			if OP == 1 {
+				fmt.Println("How much money do you want to withdraw?")
+				am.Scan()
+			} else if OP == 2 {
+				fmt.Println("How much money do you want to deposit?")
+				am.Scan()
+			} else {
+				fmt.Println("You want to see the balance")
+			}
+			if am.Text() != "" {
+				accountNr, _ := strconv.Atoi(acc.Text())
+				amount, _ := strconv.Atoi(am.Text())
+				return accountNr, OP, amount
+			}
+		}
+	}
+	return -1, -1, 0
 }
