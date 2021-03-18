@@ -85,6 +85,7 @@ func main() {
 	nodeIDs := make([]int, 0)
 	clientAddr := make([]string, 0)
 	OtherServers := make([]OtherServer, 0)
+	decidedValueBuffer := make(map[int]multipaxos.DecidedValue, 0)
 	netconf, _ := importNetConfig("./netConfig.json")
 	netConfClients, _ := importNetConfig("./clientNetConfig.json")
 	fmt.Printf("The servers are: %v \n", netconf.Endpoints)
@@ -132,8 +133,8 @@ func main() {
 	proposer.Start()
 	acceptor.Start()
 	learner.Start()
-
 	nfd.Start()
+
 	for {
 		fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
 		fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
@@ -235,25 +236,36 @@ func main() {
 			fmt.Println("The learn message is: ", *learnmsg)
 			learner.DeliverLearn(*learnmsg)
 		case decidedout := <-decidedOut:
-			fmt.Println("Inside the decided value part")
+			if int(decidedout.SlotID) > (adu + 1) {
+				decidedValueBuffer[int(decidedout.SlotID)] = decidedout
+				return
+			}
+			if decidedout.Value.Noop != true {
+				if _, ok := bankAccounts[decidedout.Value.AccountNum]; !ok {
+					bankAccounts[decidedout.Value.AccountNum] = bank.Account{Number: decidedout.Value.AccountNum, Balance: 0}
+				}
+				account := bankAccounts[decidedout.Value.AccountNum]
+				transaction := account.Process(decidedout.Value.Tnx)
+				fmt.Println(transaction)
+				if server.id == nld.CurrentLeader {
+					for _, client := range clientAddr {
+						out := multipaxos.Response{ClientID: decidedout.Value.ClientID, ClientSeq: decidedout.Value.ClientSeq, TnxRes: transaction}
+						SendCommand(client, "NewValue", out.String())
+					}
+				}
+			}
 			if server.id == nld.CurrentLeader {
 				for _, otherServer := range OtherServers {
 					SendCommand(otherServer.addr, "UpdateAdu", "test")
 				}
-				for _, client := range clientAddr {
-					account := bankAccounts[decidedout.Value.AccountNum]
-					transaction := account.Process(decidedout.Value.Tnx)
-					out := multipaxos.Response{ClientID: decidedout.Value.ClientID, ClientSeq: decidedout.Value.ClientSeq, TnxRes: transaction}
-					fmt.Println("The descided value is: ", decidedout)
-					SendCommand(client, "NewValue", out.String())
-				}
+			}
+			if _, ok := decidedValueBuffer[adu+1]; ok {
+				value := decidedValueBuffer[adu+1]
+				decidedOut <- value
 			}
 
-		case valueIn := <-UpdateAdu:
-			if valueIn != "" {
-				fmt.Println("Got a value")
-			}
-			adu ++
+		case <-UpdateAdu:
+			adu++
 			proposer.IncrementAllDecidedUpTo()
 		}
 	}
