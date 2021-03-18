@@ -72,6 +72,8 @@ func (u *UDPServer) ServeUDP() {
 				LearnIn <- s[1]
 			case "UpdateAdu":
 				UpdateAdu <- s[1]
+			case "ReConfig":
+				ReConfig <- s[1]
 			default:
 				newString = "Unknown command"
 			}
