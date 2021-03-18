@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -89,13 +90,17 @@ func main() {
 	netconf, _ := importNetConfig("./netConfig.json")
 	netConfClients, _ := importNetConfig("./clientNetConfig.json")
 	fmt.Printf("The servers are: %v \n", netconf.Endpoints)
-	fmt.Println("Write in the index of the one you want to run: ")
-	var serverID string
-	fmt.Scanln(&serverID)
-	id, err := strconv.Atoi(serverID)
-	if err != nil {
-		fmt.Println(err)
+	addrs, _ := net.InterfaceAddrs()
+	var addr string
+	for _, i := range addrs {
+		if strings.Contains(i.String(), "192") {
+			addr = i.String()
+		}
 	}
+	splittedAddr := strings.Split(addr, "/")
+	splitAgain := strings.Split(splittedAddr[0], ".")
+	id, _ := strconv.Atoi(splitAgain[3])
+	id = id - 2
 	for _, endpoint := range netconf.Endpoints {
 		OtherServers = append(OtherServers, OtherServer{endpoint.Addr, endpoint.ID})
 		nodeIDs = append(nodeIDs, endpoint.ID)

@@ -102,9 +102,8 @@ func AskForInfo() (int, int, int) {
 			amount, _ := strconv.Atoi(am.Text())
 			if am.Text() != "" {
 				return accountNr, OP, amount
-			} else {
-				return accountNr, OP, 0
 			}
+			return accountNr, OP, 0
 		}
 	}
 	return -1, -1, 0
