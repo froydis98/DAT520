@@ -66,12 +66,14 @@ func main() {
 	for {
 		clientSeq++
 		accountNr, OP, amount := AskForInfo(Servers)
-		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: false, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
-		valueString, _ := json.Marshal(val)
-		for _, server := range Servers {
-			_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
-			if err != nil {
-				fmt.Println(err)
+		if accountNr != -1 {
+			val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: false, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
+			valueString, _ := json.Marshal(val)
+			for _, server := range Servers {
+				_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 		}
 	}
