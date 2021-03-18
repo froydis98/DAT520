@@ -134,6 +134,7 @@ func main() {
 	UpdateAdu = make(chan string, 4294967)
 	ReConfig = make(chan string, 4294967)
 	for {
+		time.Sleep(time.Second)
 		var NmrServers int
 		fmt.Println("We are waiting in first For loop for current servers")
 		select {
@@ -147,6 +148,8 @@ func main() {
 					OtherServers = OtherServers[1:]
 				}
 			}
+		default:
+			continue
 		}
 		_, ok := currentServers[id]
 		if ok == true {
@@ -305,6 +308,6 @@ func main() {
 				}
 			}
 		}
-
+		fmt.Println("End of for loop")
 	}
 }
