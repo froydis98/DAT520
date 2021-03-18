@@ -47,7 +47,7 @@ func (v Value) String() string {
 	if v.Noop {
 		return fmt.Sprintf("No-op value")
 	}
-	return fmt.Sprintf("Value{ClientID: %s, ClientSeq: %d, AccountNum: %s, Tnx: %s}",
+	return fmt.Sprintf("Value{ClientID: %s, ClientSeq: %d, AccountNum: %d, Tnx: %s}",
 		v.ClientID, v.ClientSeq, v.AccountNum, v.Tnx)
 }
 
@@ -62,13 +62,13 @@ func (v Value) String() string {
 type Response struct {
 	ClientID  string
 	ClientSeq int
-	Command   string
+	TnxRes	  bank.TransactionResult
 }
 
 // String returns a string representation of response r.
 func (r Response) String() string {
 	return fmt.Sprintf("Response{ClientID: %s, ClientSeq: %d, Command: %s}",
-		r.ClientID, r.ClientSeq, r.Command)
+		r.ClientID, r.ClientSeq, r.TnxRes)
 }
 
 // Message definitions - DO NOT EDIT

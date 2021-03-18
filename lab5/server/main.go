@@ -124,7 +124,9 @@ func main() {
 	var proposer *multipaxos.Proposer
 	var acceptor *multipaxos.Acceptor
 	var learner *multipaxos.Learner
-	proposer = multipaxos.NewProposer(server.id, len(OtherServers), -1, nld, prepareOut, acceptOut)
+	bankAccounts := make(map[int]bank.Account)
+	adu := -1
+	proposer = multipaxos.NewProposer(server.id, len(OtherServers), adu, nld, prepareOut, acceptOut)
 	acceptor = multipaxos.NewAcceptor(server.id, promiseOut, learnOut)
 	learner = multipaxos.NewLearner(server.id, len(OtherServers), decidedOut)
 	proposer.Start()
@@ -195,12 +197,12 @@ func main() {
 			proposer.DeliverPromise(*promise)
 		case input := <-ClientChan:
 			fmt.Println("Inside the client channel")
-			splitInput := strings.Split(input, ",")
-			res, _ := strconv.Atoi(splitInput[1])
-			b1, _ := strconv.ParseBool(splitInput[2])
-			Accnum, _ := strconv.Atoi(splitInput[3])
-			// TODO This must be updated with correct transaction and accnum
-			value := multipaxos.Value{ClientID: splitInput[0], ClientSeq: res, Noop: b1, AccountNum: Accnum, Tnx: bank.Transaction{Op: 0, Amount: 0}}
+			clientVal := &multipaxos.Value{}
+			err := json.Unmarshal([]byte(input), clientVal)
+			if err != nil {
+				fmt.Println(err)
+			}
+			value := multipaxos.Value{ClientID: clientVal.ClientID, ClientSeq: clientVal.ClientSeq, Noop: clientVal.Noop, AccountNum: clientVal.AccountNum, Tnx: clientVal.Tnx}
 			proposer.DeliverClientValue(value)
 
 		case acceptOut := <-acceptOut:
@@ -239,11 +241,11 @@ func main() {
 					SendCommand(otherServer.addr, "UpdateAdu", "test")
 				}
 				for _, client := range clientAddr {
-					fmt.Println("KKKKKKKKKKKKKKK", decidedout)
-					clientSequence := strconv.Itoa(decidedout.Value.ClientSeq)
-					// TODO Update the decided value strong
-					outString := fmt.Sprint(decidedout.Value.AccountNum) + " - " + string(decidedout.Value.ClientID) + " - " + clientSequence
-					SendCommand(client, "NewValue", string(outString))
+					account := bankAccounts[decidedout.Value.AccountNum]
+					transaction := account.Process(decidedout.Value.Tnx)
+					out := multipaxos.Response{ClientID: decidedout.Value.ClientID, ClientSeq: decidedout.Value.ClientSeq, TnxRes: transaction}
+					fmt.Println("The descided value is: ", decidedout)
+					SendCommand(client, "NewValue", out.String())
 				}
 			}
 
@@ -251,6 +253,7 @@ func main() {
 			if valueIn != "" {
 				fmt.Println("Got a value")
 			}
+			adu ++
 			proposer.IncrementAllDecidedUpTo()
 		}
 	}
