@@ -256,10 +256,7 @@ func main() {
 					fmt.Println("THis is account", account)
 				}
 				account := bankAccounts[decidedout.Value.AccountNum]
-				fmt.Println("Bank Account is: ", account.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
-
 				transaction := account.Process(decidedout.Value.Tnx)
-				fmt.Println("Bank Account is: ", account.String(), "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
 				bankAccounts[decidedout.Value.AccountNum] = account
 				fmt.Println(transaction)
 				if server.id == nld.CurrentLeader {
