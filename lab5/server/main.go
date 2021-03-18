@@ -241,9 +241,12 @@ func main() {
 				return
 			}
 			if decidedout.Value.Noop != true {
-				if _, ok := bankAccounts[decidedout.Value.AccountNum]; !ok {
+				_, ok := bankAccounts[decidedout.Value.AccountNum]
+				if ok == false {
+					fmt.Println("Bank account not found, creating new account")
 					bankAccounts[decidedout.Value.AccountNum] = bank.Account{Number: decidedout.Value.AccountNum, Balance: 0}
 				}
+
 				account := bankAccounts[decidedout.Value.AccountNum]
 				transaction := account.Process(decidedout.Value.Tnx)
 				fmt.Println(transaction)
