@@ -4,7 +4,8 @@ package main
 import (
 	"dat520/lab3/failuredetector"
 	"dat520/lab3/leaderdetector"
-	"dat520/lab4/multipaxos"
+	"dat520/lab5/bank"
+	"dat520/lab5/multipaxos"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,16 +16,19 @@ import (
 	"time"
 )
 
+// OtherServer - Used to know what addrs that might be possible to connect to
 type OtherServer struct {
 	addr   string
 	nodeID int
 }
 
+// Endpoints - Matches the endpoints in json files
 type Endpoints struct {
 	ID   int
 	Addr string
 }
 
+// NetworkConfig - should math json files
 type NetworkConfig struct {
 	Endpoints []Endpoints
 }
@@ -59,12 +63,22 @@ func importNetConfig(path string) (NetworkConfig, error) {
 	return netconf, nil
 }
 
+// ClientChan - global channel
 var ClientChan chan string
+
+// PrepareIn - global channel
 var PrepareIn chan string
+
+// PromiseIn - global channel
 var PromiseIn chan string
+
+// AcceptIn - global channel
 var AcceptIn chan string
+
+// LearnIn - global channel
 var LearnIn chan string
-var NewLearnIn chan string
+
+// UpdateAdu - global channel
 var UpdateAdu chan string
 
 func main() {
@@ -184,7 +198,9 @@ func main() {
 			splitInput := strings.Split(input, ",")
 			res, _ := strconv.Atoi(splitInput[1])
 			b1, _ := strconv.ParseBool(splitInput[2])
-			value := multipaxos.Value{splitInput[0], res, b1, splitInput[3]}
+			Accnum, _ := strconv.Atoi(splitInput[3])
+			// TODO This must be updated with correct transaction and accnum
+			value := multipaxos.Value{ClientID: splitInput[0], ClientSeq: res, Noop: b1, AccountNum: Accnum, Tnx: bank.Transaction{Op: 0, Amount: 0}}
 			proposer.DeliverClientValue(value)
 
 		case acceptOut := <-acceptOut:
@@ -225,7 +241,8 @@ func main() {
 				for _, client := range clientAddr {
 					fmt.Println("KKKKKKKKKKKKKKK", decidedout)
 					clientSequence := strconv.Itoa(decidedout.Value.ClientSeq)
-					outString := string(decidedout.Value.Command) + " - " + string(decidedout.Value.ClientID) + " - " + clientSequence
+					// TODO Update the decided value strong
+					outString := fmt.Sprint(decidedout.Value.AccountNum) + " - " + string(decidedout.Value.ClientID) + " - " + clientSequence
 					SendCommand(client, "NewValue", string(outString))
 				}
 			}

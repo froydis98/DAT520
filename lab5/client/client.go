@@ -67,6 +67,8 @@ func socketIsClosed(err error) bool {
 	}
 	return false
 }
+
+// SendCommand is used to write to other UDP servers
 func SendCommand(udpAddr, cmd, txt string) (string, error) {
 	addr, err := net.ResolveUDPAddr("udp", udpAddr)
 

@@ -5,6 +5,7 @@ import "fmt"
 // Operation represents a transaction type
 type Operation int
 
+// Balance, Deposit and Withdrawal
 const (
 	Balance Operation = iota
 	Deposit

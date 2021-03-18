@@ -9,16 +9,19 @@ import (
 	"strconv"
 )
 
+// OtherServer - Used to know what addrs that might be possible to connect to
 type OtherServer struct {
 	addr   string
 	nodeID int
 }
 
+// Endpoints - Matches the endpoints in json files
 type Endpoints struct {
 	ID   int
 	Addr string
 }
 
+// NetworkConfig - should math json files
 type NetworkConfig struct {
 	Endpoints []Endpoints
 }
@@ -50,7 +53,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	
+
 	Servers := make([]OtherServer, 0)
 	for _, endpoint := range netconfServers.Endpoints {
 		Servers = append(Servers, OtherServer{endpoint.Addr, endpoint.ID})

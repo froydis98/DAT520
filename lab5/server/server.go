@@ -51,8 +51,8 @@ func (u *UDPServer) ServeUDP() {
 			var newString string
 			switch s[0] {
 			case "AddServerIp":
-				newstringId := strconv.Itoa(u.id)
-				newString = u.adr.String() + "," + newstringId
+				newstringID := strconv.Itoa(u.id)
+				newString = u.adr.String() + "," + newstringID
 			case "HeartBeat":
 				splitter := strings.Split(s[1], ",")
 				if splitter[2] == "false" {
@@ -89,6 +89,8 @@ func socketIsClosed(err error) bool {
 	}
 	return false
 }
+
+// SendCommand - used to write to other UDP servers
 func SendCommand(udpAddr, cmd, txt string) (string, error) {
 	addr, err := net.ResolveUDPAddr("udp", udpAddr)
 
