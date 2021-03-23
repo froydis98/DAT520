@@ -141,20 +141,16 @@ func main() {
 	StartServers = make(chan string, 4294967)
 	newNmrServers := 0
 	breaker := false
-	for {
-		time.Sleep(time.Second)
+	bankAccounts := make(map[int]bank.Account)
 
-		bankAccounts := make(map[int]bank.Account)
+	for {
 		fmt.Println(newNmrServers)
 		currentServers = make(map[int]OtherServer, 0)
 
-		fmt.Println("ÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆ", breaker, newNmrServers)
-
 		if breaker == true && newNmrServers != 0 {
-			MarshalString, _ := json.Marshal(bankAccounts)
-			fmt.Println("ÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆ")
 			for i := 0; i < newNmrServers; i++ {
 				{
+					MarshalString, _ := json.Marshal(bankAccounts)
 					SendCommand(OtherServers[0].addr, "BankInfo", string(MarshalString))
 					fmt.Println("Current Servers Round :", i, currentServers)
 					currentServers[OtherServers[0].nodeID] = OtherServers[0]
@@ -165,6 +161,8 @@ func main() {
 			breaker = false
 			newNmrServers = 0
 		}
+		bankAccounts = make(map[int]bank.Account)
+
 		select {
 		case startServers := <-StartServers:
 			nmrServers, _ := strconv.Atoi(startServers)
@@ -177,10 +175,7 @@ func main() {
 			}
 
 		case nmrServersNewServer := <-ReConfig:
-			fmt.Println("OUTSIDE THE RECONFIG WITH BREAKER FALSE")
-
 			if breaker == false {
-				fmt.Println("INSIDE THE RECONFIG WITH BREAKER FALSE")
 				nmrServersNewServers, _ := strconv.Atoi(nmrServersNewServer)
 				for i := 0; i < nmrServersNewServers; i++ {
 					{
@@ -191,10 +186,13 @@ func main() {
 				}
 			}
 		case bankInfo := <-SendBankInfo:
+			fmt.Println("WE HAVE BANKINFOOOO outside of loooop", bankInfo)
 			var bankAccountInfo = &map[int]bank.Account{}
 			json.Unmarshal([]byte(bankInfo), bankAccountInfo)
 			bankAccounts = *bankAccountInfo
 		default:
+			time.Sleep(time.Second)
+
 			continue
 		}
 		fmt.Println(currentServers)
@@ -249,6 +247,13 @@ func main() {
 						fmt.Println(res, err)
 
 					}
+
+				case bankInfo := <-SendBankInfo:
+					fmt.Println("WE HAVE BANKINFOOOO in core", bankInfo)
+
+					var bankAccountInfo = &map[int]bank.Account{}
+					json.Unmarshal([]byte(bankInfo), bankAccountInfo)
+					bankAccounts = *bankAccountInfo
 				case test := <-ReConfig:
 					breaker = true
 					proposer.Stop()
