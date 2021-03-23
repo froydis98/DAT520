@@ -65,20 +65,56 @@ func main() {
 	go server.ServeUDP()
 	for {
 		clientSeq++
-		accountNr, OP, amount := AskForInfo()
-		val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: false, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
-		valueString, _ := json.Marshal(val)
-		for _, server := range Servers {
-			_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
-			if err != nil {
-				fmt.Println(err)
+		accountNr, OP, amount := AskForInfo(Servers)
+		if accountNr != -1 {
+			val := multipaxos.Value{ClientID: serverID, ClientSeq: clientSeq, Noop: false, AccountNum: accountNr, Tnx: bank.Transaction{Op: bank.Operation(OP), Amount: amount}}
+			valueString, _ := json.Marshal(val)
+			for _, server := range Servers {
+				_, err := SendCommand(server.addr, "ClientRequest", string(valueString))
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 		}
 	}
 }
 
 // AskForInfo - input from client
-func AskForInfo() (int, int, int) {
+func AskForInfo(servers []OtherServer) (int, int, int) {
+	fmt.Println("Write 1 for configurations\nWrite 2 for banking")
+	command := bufio.NewScanner(os.Stdin)
+	command.Scan()
+	com, _ := strconv.Atoi(command.Text())
+	if com == 1 {
+		fmt.Println("Write 1 to start Servers \nWrite 2 for reconfig")
+		command := bufio.NewScanner(os.Stdin)
+		command.Scan()
+		nextCom, _ := strconv.Atoi(command.Text())
+		if nextCom == 1 {
+			fmt.Println("How many servers do you want?")
+			nrOfServers := bufio.NewScanner(os.Stdin)
+			nrOfServers.Scan()
+			for _, server := range servers {
+				_, err := SendCommand(server.addr, "StartServers", nrOfServers.Text())
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			return -1, -1, 0
+		} else if nextCom == 2 {
+			fmt.Println("How many servers do you want?")
+			nrOfServers := bufio.NewScanner(os.Stdin)
+			nrOfServers.Scan()
+			for _, server := range servers {
+				_, err := SendCommand(server.addr, "ReConfig", nrOfServers.Text())
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			return -1, -1, 0
+
+		}
+	}
 	fmt.Println("Please enter the account number: ")
 	var acc = bufio.NewScanner(os.Stdin)
 	acc.Scan()

@@ -39,6 +39,7 @@ func NewLearner(id int, nrOfNodes int, decidedOut chan<- DecidedValue) *Learner 
 		Rnd:          Round(0),
 		learnIn:      make(chan Learn),
 		learnedSlots: make(map[SlotID][]Learn),
+		stop:         make(chan struct{}),
 	}
 }
 
@@ -54,7 +55,7 @@ func (l *Learner) Start() {
 					l.decidedOut <- DecidedValue{SlotID: slot, Value: val}
 				}
 			case <-l.stop:
-				return
+				break
 			}
 		}
 	}()
