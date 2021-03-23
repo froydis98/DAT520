@@ -152,7 +152,6 @@ func main() {
 				{
 					MarshalString, _ := json.Marshal(bankAccounts)
 					SendCommand(OtherServers[0].addr, "BankInfo", string(MarshalString))
-					fmt.Println("Current Servers Round :", i, currentServers)
 					currentServers[OtherServers[0].nodeID] = OtherServers[0]
 					OtherServers = append(OtherServers, OtherServers[0])
 					OtherServers = OtherServers[1:]
@@ -186,7 +185,6 @@ func main() {
 				}
 			}
 		case bankInfo := <-SendBankInfo:
-			fmt.Println("WE HAVE BANKINFOOOO outside of loooop", bankInfo)
 			var bankAccountInfo = &map[int]bank.Account{}
 			json.Unmarshal([]byte(bankInfo), bankAccountInfo)
 			bankAccounts = *bankAccountInfo
@@ -198,7 +196,6 @@ func main() {
 		fmt.Println(currentServers)
 		_, ok := currentServers[id+2]
 		if ok == true {
-			fmt.Println("We are inside the for loop")
 			var proposer *multipaxos.Proposer
 			var acceptor *multipaxos.Acceptor
 			var learner *multipaxos.Learner
@@ -249,8 +246,7 @@ func main() {
 					}
 
 				case bankInfo := <-SendBankInfo:
-					fmt.Println("WE HAVE BANKINFOOOO in core", bankInfo)
-
+					fmt.Println("We Have transfered bankInfo: ", bankInfo)
 					var bankAccountInfo = &map[int]bank.Account{}
 					json.Unmarshal([]byte(bankInfo), bankAccountInfo)
 					bankAccounts = *bankAccountInfo
@@ -340,9 +336,6 @@ func main() {
 							fmt.Println("Bank account not found, creating new account")
 							bankAccounts[decidedout.Value.AccountNum] = bank.Account{Number: decidedout.Value.AccountNum, Balance: 0}
 						}
-						for _, account := range bankAccounts {
-							fmt.Println("THis is account", account)
-						}
 						account := bankAccounts[decidedout.Value.AccountNum]
 						transaction := account.Process(decidedout.Value.Tnx)
 						bankAccounts[decidedout.Value.AccountNum] = account
@@ -370,6 +363,5 @@ func main() {
 				}
 			}
 		}
-		fmt.Println("End of for loop")
 	}
 }
