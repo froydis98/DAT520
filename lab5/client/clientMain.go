@@ -86,16 +86,34 @@ func AskForInfo(servers []OtherServer) (int, int, int) {
 	command.Scan()
 	com, _ := strconv.Atoi(command.Text())
 	if com == 1 {
-		fmt.Println("How many servers do you want?")
-		nrOfServers := bufio.NewScanner(os.Stdin)
-		nrOfServers.Scan()
-		for _, server := range servers {
-			_, err := SendCommand(server.addr, "ReConfig", nrOfServers.Text())
-			if err != nil {
-				fmt.Println(err)
+		fmt.Println("Write 1 to start Servers \nWrite 2 for reconfig")
+		command := bufio.NewScanner(os.Stdin)
+		command.Scan()
+		nextCom, _ := strconv.Atoi(command.Text())
+		if nextCom == 1 {
+			fmt.Println("How many servers do you want?")
+			nrOfServers := bufio.NewScanner(os.Stdin)
+			nrOfServers.Scan()
+			for _, server := range servers {
+				_, err := SendCommand(server.addr, "StartServers", nrOfServers.Text())
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
+			return -1, -1, 0
+		} else if nextCom == 2 {
+			fmt.Println("How many servers do you want?")
+			nrOfServers := bufio.NewScanner(os.Stdin)
+			nrOfServers.Scan()
+			for _, server := range servers {
+				_, err := SendCommand(server.addr, "ReConfig", nrOfServers.Text())
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			return -1, -1, 0
+
 		}
-		return -1, -1, 0
 	}
 	fmt.Println("Please enter the account number: ")
 	var acc = bufio.NewScanner(os.Stdin)

@@ -85,6 +85,10 @@ var UpdateAdu chan string
 // ReConfig - global channel
 var ReConfig chan string
 
+var SendBankInfo chan string
+
+var StartServers chan string
+
 func main() {
 	nodeIDs := make([]int, 0)
 	clientAddr := make([]string, 0)
@@ -133,42 +137,73 @@ func main() {
 	ClientChan = make(chan string, 4294967)
 	UpdateAdu = make(chan string, 4294967)
 	ReConfig = make(chan string, 4294967)
+	SendBankInfo = make(chan string, 4294967)
+	StartServers = make(chan string, 4294967)
 	newNmrServers := 0
+	breaker := false
 	for {
-		breaker := false
 		time.Sleep(time.Second)
+
+		bankAccounts := make(map[int]bank.Account)
+		fmt.Println(newNmrServers)
 		currentServers = make(map[int]OtherServer, 0)
-		var NmrServers int
-		fmt.Println("We are waiting in first For loop for current servers")
-		if newNmrServers != 0 {
-			nmrServersString := strconv.Itoa(newNmrServers)
-			ReConfig <- nmrServersString
-		}
-		select {
-		case nmrServers := <-ReConfig:
-			fmt.Println("We are inside of the Reconfig ")
-			NmrServers, _ = strconv.Atoi(nmrServers)
-			for i := 0; i < NmrServers; i++ {
+
+		fmt.Println("ÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆ", breaker, newNmrServers)
+
+		if breaker == true && newNmrServers != 0 {
+			MarshalString, _ := json.Marshal(bankAccounts)
+			fmt.Println("ÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆ")
+			for i := 0; i < newNmrServers; i++ {
 				{
-					fmt.Println("Inside for loop nmr: ", i)
-					currentServers[OtherServers[0].nodeID] = OtherServers[0]
+					SendCommand(OtherServers[0].addr, "BankInfo", string(MarshalString))
 					fmt.Println("Current Servers Round :", i, currentServers)
+					currentServers[OtherServers[0].nodeID] = OtherServers[0]
 					OtherServers = append(OtherServers, OtherServers[0])
-					fmt.Println("OtherServers after append ", OtherServers)
 					OtherServers = OtherServers[1:]
-					fmt.Println("OtherServers after slice ", OtherServers)
 				}
 			}
+			breaker = false
+			newNmrServers = 0
+		}
+		select {
+		case startServers := <-StartServers:
+			nmrServers, _ := strconv.Atoi(startServers)
+			for i := 0; i < int(nmrServers); i++ {
+				{
+					currentServers[OtherServers[0].nodeID] = OtherServers[0]
+					OtherServers = append(OtherServers, OtherServers[0])
+					OtherServers = OtherServers[1:]
+				}
+			}
+
+		case nmrServersNewServer := <-ReConfig:
+			fmt.Println("OUTSIDE THE RECONFIG WITH BREAKER FALSE")
+
+			if breaker == false {
+				fmt.Println("INSIDE THE RECONFIG WITH BREAKER FALSE")
+				nmrServersNewServers, _ := strconv.Atoi(nmrServersNewServer)
+				for i := 0; i < nmrServersNewServers; i++ {
+					{
+						currentServers[OtherServers[0].nodeID] = OtherServers[0]
+						OtherServers = append(OtherServers, OtherServers[0])
+						OtherServers = OtherServers[1:]
+					}
+				}
+			}
+		case bankInfo := <-SendBankInfo:
+			var bankAccountInfo = &map[int]bank.Account{}
+			json.Unmarshal([]byte(bankInfo), bankAccountInfo)
+			bankAccounts = *bankAccountInfo
 		default:
 			continue
 		}
-		fmt.Println("Current Servers", currentServers, "Id is :", id+2)
+		fmt.Println(currentServers)
 		_, ok := currentServers[id+2]
 		if ok == true {
+			fmt.Println("We are inside the for loop")
 			var proposer *multipaxos.Proposer
 			var acceptor *multipaxos.Acceptor
 			var learner *multipaxos.Learner
-			bankAccounts := make(map[int]bank.Account)
 			adu := -1
 			proposer = multipaxos.NewProposer(server.id, len(currentServers), adu, nld, prepareOut, acceptOut)
 			acceptor = multipaxos.NewAcceptor(server.id, promiseOut, learnOut)
@@ -179,11 +214,11 @@ func main() {
 			nfd.Start()
 
 			for {
-				fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
-				fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
 				if breaker {
 					break
 				}
+				fmt.Printf("\n\nThe leader is: %v\n", nld.Leader())
+				fmt.Printf("The suspected nodes are: %v\n", nld.Suspected)
 				select {
 				case <-hbSend:
 					for _, server := range currentServers {
@@ -215,11 +250,10 @@ func main() {
 
 					}
 				case test := <-ReConfig:
-					fmt.Println("Inside the Reconfig in the inner for loop", test)
 					breaker = true
 					proposer.Stop()
-					learner.Stop()
 					acceptor.Stop()
+					learner.Stop()
 					nmrserver, _ := strconv.Atoi(test)
 					newNmrServers = nmrserver
 					break
@@ -277,7 +311,7 @@ func main() {
 					}
 					acceptor.DeliverAccept(*acceptmsg)
 				case learnmsg := <-learnOut:
-					fmt.Println("Insiden Learn Out from Acceptor")
+					fmt.Println("Insiden Learn Out from Acceptor", learnmsg)
 					learnString, _ := json.Marshal(learnmsg)
 					for _, otherserver := range currentServers {
 						SendCommand(otherserver.addr, "Learn", string(learnString))
